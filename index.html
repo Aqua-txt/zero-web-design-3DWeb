@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D 合成大西瓜</title>
+  </head>
+  <body>
+    <div id="stage"></div>
+
+    <div id="score-box">
+      <div class="title">3D 合成大西瓜</div>
+      <div id="score">0</div>
+      <div id="best">最高分 0</div>
+    </div>
+
+    <button id="reset" type="button">重开</button>
+
+    <div id="tips">
+      <b>操作指南</b>
+      <span>· 点击右下操作面板，球会落在盒顶对应位置</span>
+      <span>· 在面板外的场景中按住拖动旋转视角，滚轮缩放</span>
+      <span>· 两个同号球相撞合成大一号；两枚 7 号西瓜相消</span>
+    </div>
+
+    <div id="panel-wrap">
+      <div id="queue">
+        <div class="q-item">
+          <span id="cur-dot" class="dot"></span>
+          <div><b id="cur-name"></b><i>当前</i></div>
+        </div>
+        <div class="q-arrow">➜</div>
+        <div class="q-item">
+          <span id="next-dot" class="dot"></span>
+          <div><b id="next-name"></b><i>下一个</i></div>
+        </div>
+      </div>
+      <div id="panel">
+        <canvas id="top-view"></canvas>
+        <span class="side top">↑ 盒子后方</span>
+        <span class="side bottom">↓ 盒子前方（靠近镜头）</span>
+        <span class="side corner">俯视图 · 实时</span>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

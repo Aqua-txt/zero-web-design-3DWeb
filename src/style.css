@@ -1,0 +1,231 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0a0f1e;
+  color: #e8edf7;
+  font-family: system-ui, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+}
+#stage canvas {
+  display: block;
+}
+
+/* ---------- 左上：分数 ---------- */
+#score-box {
+  position: fixed;
+  top: 18px;
+  left: 22px;
+  z-index: 10;
+  pointer-events: none;
+}
+#score-box .title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: #9fb2d8;
+}
+#score {
+  font-size: 46px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: #fff;
+  text-shadow: 0 0 26px rgba(120, 170, 255, 0.45);
+  font-variant-numeric: tabular-nums;
+}
+#best {
+  font-size: 13px;
+  color: #8b9cc4;
+}
+
+/* ---------- 右上：重开 ---------- */
+#reset {
+  position: fixed;
+  top: 18px;
+  right: 22px;
+  z-index: 10;
+  cursor: pointer;
+  background: rgba(30, 42, 74, 0.75);
+  border: 1px solid rgba(140, 170, 255, 0.35);
+  color: #dbe6ff;
+  padding: 8px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  transition: background 0.15s, border-color 0.15s;
+}
+#reset:hover {
+  background: rgba(52, 72, 120, 0.9);
+  border-color: rgba(160, 190, 255, 0.6);
+}
+
+/* ---------- 左下：操作提示 ---------- */
+#tips {
+  position: fixed;
+  left: 22px;
+  bottom: 20px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #8b9cc4;
+  pointer-events: none;
+}
+#tips b {
+  color: #b9c9ee;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+/* ---------- 右下：队列 + 操作面板 ---------- */
+#panel-wrap {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+#queue {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(14, 20, 40, 0.78);
+  border: 1px solid rgba(140, 170, 255, 0.22);
+  border-radius: 12px;
+  padding: 8px 16px;
+  backdrop-filter: blur(6px);
+}
+.q-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.q-item .dot {
+  flex: none;
+  display: inline-block;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 2px 10px rgba(0, 0, 0, 0.4),
+    inset -2px -3px 6px rgba(0, 0, 0, 0.28);
+}
+.q-item b {
+  display: block;
+  font-size: 13px;
+  color: #fff;
+  white-space: nowrap;
+}
+.q-item i {
+  display: block;
+  font-style: normal;
+  font-size: 11px;
+  color: #8b9cc4;
+}
+.q-arrow {
+  color: #7f92bd;
+  font-size: 15px;
+}
+
+/* 正方形操作面板：边长 = 屏幕宽度的 30%（映射盒顶 XZ 平面，上=后方 -Z，下=前方 +Z） */
+#panel {
+  position: relative;
+  width: 30vw;
+  height: 30vw;
+  min-width: 240px;
+  min-height: 240px;
+  border-radius: 14px;
+  cursor: crosshair;
+  background:
+    linear-gradient(rgba(150, 180, 255, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(150, 180, 255, 0.09) 1px, transparent 1px),
+    rgba(13, 19, 38, 0.82);
+  background-size:
+    10% 10%,
+    10% 10%,
+    auto;
+  border: 1px solid rgba(150, 180, 255, 0.3);
+  box-shadow:
+    0 10px 36px rgba(0, 0, 0, 0.5),
+    inset 0 0 26px rgba(90, 130, 255, 0.06);
+  backdrop-filter: blur(6px);
+  touch-action: none;
+  transition: opacity 0.2s;
+}
+#panel.cooling {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+#panel .side {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: #7587ad;
+  pointer-events: none;
+  white-space: nowrap;
+}
+#panel .side.top {
+  top: 4px;
+}
+#panel .side.bottom {
+  bottom: 4px;
+}
+#panel .side.corner {
+  left: 10px;
+  top: 6px;
+  transform: none;
+  color: #8fa0c8;
+}
+
+/* 面板内实时俯视图（2D canvas，与点击映射同一坐标系；跟随鼠标的当前球也画在其中） */
+#top-view {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ---------- 合成得分飘字 ---------- */
+.pop {
+  position: fixed;
+  z-index: 20;
+  transform: translate(-50%, -50%);
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffe9a8;
+  text-shadow: 0 0 12px rgba(255, 200, 90, 0.85);
+  pointer-events: none;
+  animation: popup 0.8s ease-out forwards;
+}
+@keyframes popup {
+  0% {
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% - 52px));
+  }
+}

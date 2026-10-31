@@ -1,0 +1,23 @@
+{
+  "name": "big-watermelon",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test:physics": "node scripts/physics-check.mjs"
+  },
+  "dependencies": {
+    "cannon-es": "^0.20.0",
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "typescript": "~7.0.2",
+    "vite": "^8.3.5"
+  }
+}
