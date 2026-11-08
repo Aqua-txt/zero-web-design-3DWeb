@@ -15,11 +15,17 @@ import {
   OVERFLOW_Y,
   OVERFLOW_HOLD,
   OVERFLOW_GRACE,
+  ROUND_SECONDS,
+  ROUND_WARN,
+  DANGER_SECONDS,
+  TIME_OF_DAY,
+  type TimeOfDay,
   cssColor,
   cssGlow,
 } from './config.ts'
 import { createPearl } from './art/pearls.ts'
 import { createScene } from './scene.ts'
+import { drawInkScroll } from './art/ink.ts'
 import { Sfx } from './audio.ts'
 
 /* ================= 游戏状态 ================= */
@@ -36,6 +42,9 @@ interface Ball {
   landed: boolean
 }
 
+/** 收局原因：珠满溢出 / 漏刻走空 */
+type EndReason = 'overflow' | 'time'
+
 const balls: Ball[] = []
 const bodyToBall = new Map<CANNON.Body, Ball>()
 const mergeQueue: Array<[Ball, Ball]> = []
@@ -50,6 +59,11 @@ let cooldownUntil = 0
 let started = false
 let gameOver = false
 let overflowTimer = 0
+/** 本局剩余时辰（秒）：起局后开始走，珠满或走空都收卷 */
+let timeLeft = ROUND_SECONDS
+let lastTimerLabel = ''
+/** 上一次响过催时木鱼的整秒，避免同一秒重复出声 */
+let lastWarnSecond = -1
 
 const sfx = new Sfx()
 
@@ -310,6 +324,52 @@ const intro = document.getElementById('intro')!
 const over = document.getElementById('over')!
 const elFinalScore = document.getElementById('final-score')!
 const elFinalBest = document.getElementById('final-best')!
+const elOverKicker = document.getElementById('over-kicker')!
+const elOverTitle = document.getElementById('over-title')!
+const endArt = document.getElementById('end-art') as HTMLCanvasElement
+const elTimer = document.getElementById('timer')!
+const elTimerText = document.getElementById('timer-text')!
+const elDanger = document.getElementById('danger')!
+
+// 「匣满」卷轴的水墨山水底纹（真正的画幅要等卷轴展开后才量得到，展开时还会重画一次）
+drawInkScroll(endArt)
+
+/* ---------------- 漏刻（两分钟一局） ---------------- */
+
+function updateTimerUI(): void {
+  const total = Math.max(0, Math.ceil(timeLeft))
+  const label = `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+  if (label === lastTimerLabel) return
+  lastTimerLabel = label
+  elTimerText.textContent = label
+  elTimer.classList.toggle('warn', total <= ROUND_WARN)
+}
+
+function resetTimer(): void {
+  timeLeft = ROUND_SECONDS
+  lastTimerLabel = ''
+  lastWarnSecond = -1
+  elDanger.classList.remove('on')
+  updateTimerUI()
+}
+
+function tickTimer(dt: number): void {
+  if (!started || gameOver) return
+  timeLeft = Math.max(0, timeLeft - dt)
+  updateTimerUI()
+
+  // 最后十秒：外围红晕 + 每秒一声木鱼（末三秒更急）
+  const second = Math.ceil(timeLeft)
+  if (second !== lastWarnSecond) {
+    lastWarnSecond = second
+    if (second > 0 && second <= DANGER_SECONDS) {
+      elDanger.classList.add('on')
+      sfx.warn(second)
+    }
+  }
+
+  if (timeLeft <= 0) endGame('time')
+}
 
 function dotStyle(dot: HTMLElement, level: number): void {
   const r = LEVELS[level - 1].radius
@@ -388,14 +448,48 @@ document.getElementById('reset')!.addEventListener('click', () => {
   restart()
 })
 
+/* ================= 昼夜切换 ================= */
+
+const TIME_KEY = 'lingjian-time'
+const timeBtn = document.getElementById('time-toggle')!
+const timeIcon = document.getElementById('time-icon')!
+const timeLabel = timeBtn.querySelector('i')!
+
+let timeOfDay: TimeOfDay =
+  localStorage.getItem(TIME_KEY) === 'day' || localStorage.getItem(TIME_KEY) === 'night'
+    ? (localStorage.getItem(TIME_KEY) as TimeOfDay)
+    : TIME_OF_DAY
+
+function applyTimeUI(): void {
+  const day = timeOfDay === 'day'
+  timeIcon.textContent = day ? '☀' : '☾'
+  timeLabel.textContent = day ? '日' : '夜'
+  timeBtn.classList.toggle('is-day', day)
+  timeBtn.setAttribute('aria-label', day ? '切换到秋夜' : '切换到白天')
+}
+
+if (timeOfDay !== kit.timeOfDay()) kit.setTimeOfDay(timeOfDay)
+applyTimeUI()
+
+timeBtn.addEventListener('click', () => {
+  timeOfDay = timeOfDay === 'day' ? 'night' : 'day'
+  kit.setTimeOfDay(timeOfDay)
+  localStorage.setItem(TIME_KEY, timeOfDay)
+  sfx.click()
+  applyTimeUI()
+})
+
 document.getElementById('start')!.addEventListener('click', () => {
   if (started) return
-  started = true
   sfx.start()
   intro.classList.add('leaving')
   window.setTimeout(() => {
     intro.classList.add('hidden')
   }, 720)
+  // 开场镜头：全景 → 开门 → 入院 → 对准石案；镜头落位后才允许落珠
+  kit.playIntro(() => {
+    started = true
+  })
   initQueue()
   updateQueueUI()
   updateLadder()
@@ -412,15 +506,33 @@ document.getElementById('again')!.addEventListener('click', () => {
 
 /* ================= 匣满 ================= */
 
-function endGame(): void {
+function endGame(reason: EndReason = 'overflow'): void {
   if (gameOver) return
   gameOver = true
+  elDanger.classList.remove('on')
   panel.classList.add('disabled')
   elFinalScore.textContent = String(score)
   elFinalBest.textContent = `最高 ${best}`
-  over.hidden = false
-  requestAnimationFrame(() => over.classList.add('show'))
-  sfx.gameOver()
+  // 两种收局：珠满溢出 / 漏刻走空
+  const timedOut = reason === 'time'
+  elOverKicker.textContent = timedOut ? '漏尽香销' : '珠满则溢'
+  elOverTitle.textContent = timedOut ? '收卷' : '匣满'
+
+  // 珠堆化光：先记下位置，再把珠子收走，让光点从原处升起
+  const spots = balls.map(
+    (b) => new THREE.Vector3(b.body.position.x, b.body.position.y, b.body.position.z),
+  )
+  for (const b of [...balls]) removeBall(b)
+  if (spots.length > 0) kit.fx.ascend(spots)
+
+  // 留一点时间看光点升空，再展开卷轴
+  window.setTimeout(() => {
+    over.hidden = false
+    // 卷轴尺寸此时才可测量，按实际画幅重画底纹，避免月亮/印章被拉变形
+    drawInkScroll(endArt)
+    requestAnimationFrame(() => over.classList.add('show'))
+    sfx.gameOver()
+  }, 1150)
 }
 
 function checkOverflow(dt: number): void {
@@ -447,6 +559,7 @@ function restart(): void {
   overflowTimer = 0
   gameOver = false
   started = true
+  resetTimer()
   seen.clear()
   elScore.textContent = '0'
   elScore.classList.remove('bump')
@@ -658,6 +771,7 @@ function stepPhysics(dt: number): void {
 function tick(): void {
   requestAnimationFrame(tick)
   const dt = Math.min(clock.getDelta(), 0.05)
+  tickTimer(dt)
   stepPhysics(dt)
   kit.update(dt)
   kit.render()
@@ -690,6 +804,7 @@ if (import.meta.env.DEV) {
     spawnBall,
     stepPhysics,
     fastForward,
+    endGame,
     get levelStats() {
       return balls.reduce<Record<number, number>>((m, b) => {
         m[b.level] = (m[b.level] ?? 0) + 1
@@ -697,13 +812,18 @@ if (import.meta.env.DEV) {
       }, {})
     },
     get state() {
-      return { score, best, started, gameOver, overflowTimer }
+      return { score, best, started, gameOver, overflowTimer, timeLeft }
+    },
+    /** 把漏刻拨到指定剩余秒数（默认走空），用于验证收局与警示态 */
+    expireTime(left = 0.001) {
+      timeLeft = left
     },
   }
 }
 
 elBest.textContent = `最高 ${best}`
 elScore.textContent = '0'
+resetTimer()
 initQueue()
 updateLadder()
 

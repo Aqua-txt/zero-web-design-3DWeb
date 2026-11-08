@@ -100,6 +100,14 @@ export class Sfx {
     this.blip(261.63, 130.81, 1.1, 0.08, 'sine', 0.36)
   }
 
+  /** 漏刻将尽：一声短促木鱼，最后三秒更急更高 */
+  warn(secondsLeft: number): void {
+    const urgent = secondsLeft <= 3
+    const f = urgent ? 1180 : 940
+    this.blip(f, f * 0.7, 0.085, urgent ? 0.1 : 0.062, 'triangle')
+    this.noiseBurst(0.03, urgent ? 0.038 : 0.02)
+  }
+
   /** UI：纸木轻响 */
   click(): void {
     this.blip(880, 660, 0.04, 0.035, 'triangle')

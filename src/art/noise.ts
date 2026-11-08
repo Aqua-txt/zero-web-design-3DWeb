@@ -10,10 +10,6 @@ export function mulberry32(seed: number): () => number {
   }
 }
 
-/** 在 [min, max) 内取随机数 */
-export function between(rnd: () => number, min: number, max: number): number {
-  return min + rnd() * (max - min)
-}
 
 /** 平滑插值 */
 export function smoothstep(t: number): number {

@@ -35,7 +35,3 @@ export function createPearl(level: number, q: QualitySettings): THREE.Mesh {
   return mesh
 }
 
-/** 供预览或 UI 缩略图复用的材质色 */
-export function pearlCssGlow(level: number): string {
-  return `#${LEVELS[level - 1].glow.toString(16).padStart(6, '0')}`
-}
