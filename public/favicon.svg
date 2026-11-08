@@ -1,8 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <circle cx="32" cy="36" r="24" fill="#ff6bb5"/>
-  <circle cx="32" cy="36" r="24" fill="none" stroke="#e0478f" stroke-width="3"/>
-  <path d="M26 12 Q32 2 40 10 Q34 14 32 20 Q28 16 26 12Z" fill="#2ed573"/>
-  <rect x="30" y="12" width="4" height="8" rx="2" fill="#7a4a21"/>
-  <circle cx="24" cy="30" r="3" fill="#ffffff" opacity="0.55"/>
-  <circle cx="40" cy="42" r="2.5" fill="#ffffff" opacity="0.35"/>
+  <defs>
+    <radialGradient id="pearl" cx="38%" cy="30%" r="70%">
+      <stop offset="0" stop-color="#fffbe8" />
+      <stop offset="0.55" stop-color="#f6efc4" />
+      <stop offset="1" stop-color="#c9a063" />
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="8" fill="#070a0f" />
+  <rect x="7.5" y="7.5" width="49" height="49" fill="none" stroke="#c9a063" stroke-width="1.6" />
+  <path
+    d="M7.5 20.5 L20.5 7.5 M43.5 7.5 L56.5 20.5 M56.5 43.5 L43.5 56.5 M20.5 56.5 L7.5 43.5"
+    stroke="#8c6a3f"
+    stroke-width="1.2"
+    opacity="0.9"
+  />
+  <circle cx="32" cy="32" r="11.5" fill="url(#pearl)" />
+  <circle cx="32" cy="32" r="11.5" fill="none" stroke="#fff6dc" stroke-width="0.8" opacity="0.65" />
+  <circle cx="28.4" cy="28" r="3" fill="#fffdf4" opacity="0.85" />
 </svg>

@@ -3,44 +3,101 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>3D 合成大西瓜</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#070a0f" />
+    <meta
+      name="description"
+      content="棂间叠珠：一盏灯、一只紫檀棂笼、七宝珠。国风 3D 合成小游戏，同名宝珠相叠，合而为大。"
+    />
+    <title>棂间叠珠 · 七宝叠光</title>
   </head>
   <body>
     <div id="stage"></div>
+    <div id="vignette"></div>
+    <div id="grain"></div>
+    <div id="flash"></div>
+    <div id="pop-layer"></div>
 
-    <div id="score-box">
-      <div class="title">3D 合成大西瓜</div>
-      <div id="score">0</div>
-      <div id="best">最高分 0</div>
-    </div>
+    <header id="score-box">
+      <div class="brand">
+        <span class="seal" aria-hidden="true">叠</span>
+        <div class="brand-text">
+          <h1>棂间叠珠</h1>
+          <p class="sub">七宝叠光 · 一棂一世界</p>
+        </div>
+      </div>
+      <div class="score-row">
+        <span class="score-label">本局</span>
+        <div id="score">0</div>
+      </div>
+      <div id="best">最高 0</div>
+      <div id="ladder" aria-label="七宝谱">
+        <span data-level="1"></span>
+        <span data-level="2"></span>
+        <span data-level="3"></span>
+        <span data-level="4"></span>
+        <span data-level="5"></span>
+        <span data-level="6"></span>
+        <span data-level="7"></span>
+      </div>
+    </header>
 
-    <button id="reset" type="button">重开</button>
+    <button id="reset" type="button" aria-label="重开一局">
+      <span>重</span><span>开</span>
+    </button>
 
-    <div id="tips">
-      <b>操作指南</b>
-      <span>· 点击右下操作面板，球会落在盒顶对应位置</span>
-      <span>· 在面板外的场景中按住拖动旋转视角，滚轮缩放</span>
-      <span>· 两个同号球相撞合成大一号；两枚 7 号西瓜相消</span>
-    </div>
+    <aside id="tips">
+      <b>玩法</b>
+      <span>在右下罗盘内移动鼠标，点下即落珠</span>
+      <span>两颗同名宝珠相撞，合而为一</span>
+      <span>拖动场景旋转视角，滚轮缩放</span>
+      <span class="faint">合出两枚夜明珠，可化光得百</span>
+    </aside>
 
     <div id="panel-wrap">
       <div id="queue">
         <div class="q-item">
           <span id="cur-dot" class="dot"></span>
-          <div><b id="cur-name"></b><i>当前</i></div>
+          <div class="q-text"><b id="cur-name">—</b><i>将落</i></div>
         </div>
-        <div class="q-arrow">➜</div>
+        <span class="q-sep" aria-hidden="true">·</span>
         <div class="q-item">
           <span id="next-dot" class="dot"></span>
-          <div><b id="next-name"></b><i>下一个</i></div>
+          <div class="q-text"><b id="next-name">—</b><i>次第</i></div>
         </div>
       </div>
       <div id="panel">
         <canvas id="top-view"></canvas>
-        <span class="side top">↑ 盒子后方</span>
-        <span class="side bottom">↓ 盒子前方（靠近镜头）</span>
-        <span class="side corner">俯视图 · 实时</span>
+        <span class="side top">后</span>
+        <span class="side bottom">前</span>
+        <span class="side left">左</span>
+        <span class="side right">右</span>
+        <span class="corner">俯视图 · 落珠</span>
+        <div class="panel-frame" aria-hidden="true"></div>
+      </div>
+    </div>
+
+    <div id="intro" class="overlay">
+      <div class="scroll">
+        <p class="kicker">庭中秋 · 丙午</p>
+        <h2>棂间叠珠</h2>
+        <p class="poem">一棂一世界<br />七宝叠成光</p>
+        <p class="intro-copy">
+          秋光落在石案上，七宝珠从棂间落下。<br />
+          同名相叠，合而为大；两枚夜明珠相击，满室清辉。
+        </p>
+        <button id="start" class="seal-btn" type="button"><span>起局</span></button>
+        <p class="tiny">点击「起局」后，在右下罗盘内落珠</p>
+      </div>
+    </div>
+
+    <div id="over" class="overlay" hidden>
+      <div class="scroll end-scroll">
+        <p class="kicker">珠满则溢</p>
+        <h2>匣满</h2>
+        <p class="end-score"><span id="final-score">0</span><i>本局</i></p>
+        <p id="final-best" class="end-best">最高 0</p>
+        <button id="again" class="seal-btn" type="button"><span>再开</span></button>
       </div>
     </div>
 

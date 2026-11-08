@@ -1,6 +1,6 @@
 /**
- * 极简 WebAudio 合成音效：不依赖任何音频资产文件。
- * 首次用户手势后惰性创建 AudioContext（浏览器自动播放策略要求）。
+ * WebAudio 合成音色：木鱼落珠、磬音合成、编钟化光。
+ * 零音频资产；首次用户手势后惰性创建 AudioContext。
  */
 export class Sfx {
   private ctx: AudioContext | null = null
@@ -17,39 +17,96 @@ export class Sfx {
     return this.ctx
   }
 
-  /** 单个滑音短音 */
-  private blip(f0: number, f1: number, dur: number, vol: number, type: OscillatorType): void {
+  private blip(
+    f0: number,
+    f1: number,
+    dur: number,
+    vol: number,
+    type: OscillatorType,
+    delay = 0,
+  ): void {
     const ctx = this.ensure()
     if (!ctx) return
-    const t = ctx.currentTime
+    const t = ctx.currentTime + delay
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
     osc.type = type
     osc.frequency.setValueAtTime(Math.max(f0, 1), t)
     osc.frequency.exponentialRampToValueAtTime(Math.max(f1, 1), t + dur)
-    gain.gain.setValueAtTime(vol, t)
+    gain.gain.setValueAtTime(0.0001, t)
+    gain.gain.exponentialRampToValueAtTime(vol, t + 0.008)
     gain.gain.exponentialRampToValueAtTime(0.0001, t + dur)
     osc.connect(gain)
     gain.connect(ctx.destination)
     osc.start(t)
-    osc.stop(t + dur + 0.03)
+    osc.stop(t + dur + 0.05)
   }
 
-  /** 落球：低频闷响 */
+  private noiseBurst(dur: number, vol: number, delay = 0): void {
+    const ctx = this.ensure()
+    if (!ctx) return
+    const t = ctx.currentTime + delay
+    const frames = Math.floor(ctx.sampleRate * dur)
+    const buffer = ctx.createBuffer(1, frames, ctx.sampleRate)
+    const data = buffer.getChannelData(0)
+    for (let i = 0; i < frames; i++) {
+      data[i] = (Math.random() * 2 - 1) * (1 - i / frames) ** 2
+    }
+    const src = ctx.createBufferSource()
+    src.buffer = buffer
+    const filter = ctx.createBiquadFilter()
+    filter.type = 'bandpass'
+    filter.frequency.value = 1600
+    filter.Q.value = 1.2
+    const gain = ctx.createGain()
+    gain.gain.value = vol
+    src.connect(filter)
+    filter.connect(gain)
+    gain.connect(ctx.destination)
+    src.start(t)
+    src.stop(t + dur)
+  }
+
+  /** 落珠：木鱼 / 棋子落盘 */
   drop(): void {
-    this.blip(230, 80, 0.13, 0.16, 'triangle')
+    this.blip(190, 82, 0.11, 0.14, 'triangle')
+    this.noiseBurst(0.045, 0.05)
   }
 
-  /** 合成：等级越高音调越高，双音叠加更"弹" */
+  /** 合成：磬音，五声音阶随等级升高 */
   merge(level: number): void {
-    const f = 240 + level * 60
-    this.blip(f, f * 2.3, 0.16, 0.2, 'sine')
-    this.blip(f * 1.5, f * 3.1, 0.12, 0.08, 'triangle')
+    const scale = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66]
+    const f = scale[Math.min(level - 1, scale.length - 1)]
+    this.blip(f, f * 0.995, 1.1, 0.13, 'sine')
+    this.blip(f * 2.01, f * 2.0, 0.8, 0.05, 'sine', 0.01)
+    this.blip(f * 2.98, f * 2.96, 0.5, 0.025, 'triangle', 0.02)
+    this.noiseBurst(0.06, 0.02)
   }
 
-  /** 两枚 7 号西瓜相消：上扬琶音 */
+  /** 双珠化光：编钟 + 铜锣 */
   maxMerge(): void {
     this.merge(7)
-    this.blip(520, 1560, 0.34, 0.13, 'square')
+    this.blip(98, 96, 2.4, 0.16, 'sine')
+    this.blip(196, 194, 1.8, 0.08, 'sine', 0.02)
+    this.blip(659.25, 658, 2.0, 0.07, 'triangle', 0.05)
+    this.blip(1046.5, 1044, 1.6, 0.05, 'sine', 0.08)
+    this.noiseBurst(0.3, 0.05)
+  }
+
+  /** 匣满：下行三音 */
+  gameOver(): void {
+    this.blip(392, 196, 0.7, 0.1, 'triangle')
+    this.blip(329.63, 164.81, 0.8, 0.08, 'triangle', 0.18)
+    this.blip(261.63, 130.81, 1.1, 0.08, 'sine', 0.36)
+  }
+
+  /** UI：纸木轻响 */
+  click(): void {
+    this.blip(880, 660, 0.04, 0.035, 'triangle')
+  }
+
+  /** 起局：一声磬 */
+  start(): void {
+    this.merge(4)
   }
 }

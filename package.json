@@ -1,7 +1,8 @@
 {
-  "name": "big-watermelon",
+  "name": "lingjian-diezhu",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "棂间叠珠 —— 国风 3D 合成小游戏（three.js + cannon-es）",
   "type": "module",
   "engines": {
     "node": ">=20.19"
@@ -10,6 +11,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "typecheck": "tsc",
     "test:physics": "node scripts/physics-check.mjs"
   },
   "dependencies": {
@@ -17,6 +19,7 @@
     "three": "^0.187.0"
   },
   "devDependencies": {
+    "@types/three": "^0.187.0",
     "typescript": "~7.0.2",
     "vite": "^8.3.5"
   }
