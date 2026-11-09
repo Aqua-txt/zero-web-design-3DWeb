@@ -129,7 +129,7 @@ npm run test:physics
 
 ```
 ├── index.html                 页面骨架：HUD / 罗盘 / 卷轴
-├── public/favicon.svg         棂格与珠的图标
+├── public/                    图标：favicon-32.png / favicon-192.png / apple-touch-icon.png
 ├── docs/
 │   ├── art-direction.md       美术设计方案
 │   └── screenshots/           README 截图
