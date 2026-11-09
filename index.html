@@ -35,7 +35,7 @@
       </div>
       <div id="best">最高 0</div>
       <div id="timer" aria-label="本局剩余时辰"><span class="t-icon" aria-hidden="true">时</span><span id="timer-text">02:00</span></div>
-      <div id="ladder" aria-label="七宝谱">
+      <button id="ladder" type="button" aria-label="打开七宝谱">
         <span data-level="1"></span>
         <span data-level="2"></span>
         <span data-level="3"></span>
@@ -43,7 +43,9 @@
         <span data-level="5"></span>
         <span data-level="6"></span>
         <span data-level="7"></span>
-      </div>
+        <i class="ladder-hint">谱</i>
+      </button>
+      <div id="codex-toast" hidden></div>
     </header>
 
     <button id="reset" type="button" aria-label="重开一局">
@@ -110,6 +112,18 @@
           <p class="end-score"><span id="final-score">0</span><i>本局</i></p>
           <p id="final-best" class="end-best">最高 0</p>
           <button id="again" class="seal-btn" type="button"><span>再开</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="codex" class="overlay" hidden>
+      <div class="scroll codex-scroll">
+        <div class="codex-inner">
+          <p class="kicker">七宝谱 · 见者记之</p>
+          <h2>七宝图鉴</h2>
+          <p class="codex-sub" id="codex-count">已识 0 / 7</p>
+          <ul id="codex-list"></ul>
+          <button id="codex-close" class="seal-btn" type="button"><span>收谱</span></button>
         </div>
       </div>
     </div>

@@ -9,6 +9,7 @@ import {
   iceCrackNormal,
   silkGlowTexture,
   silkTexture,
+  stoneReliefNormal,
   stoneTexture,
   woodTexture,
 } from './textures.ts'
@@ -111,12 +112,15 @@ export function stoneMaterial(): THREE.MeshStandardMaterial {
     tex.wrapS = THREE.RepeatWrapping
     tex.wrapT = THREE.RepeatWrapping
     tex.repeat.set(2.2, 2.2)
+    const relief = stoneReliefNormal(2.2)
     stoneMat = new THREE.MeshStandardMaterial({
       map: tex,
       color: 0x8f8678,
       roughness: 0.6,
       metalness: 0,
       envMapIntensity: 0.4,
+      normalMap: relief,
+      normalScale: new THREE.Vector2(0.5, 0.5),
     })
     stoneMat.name = 'courtyard-stone'
   }

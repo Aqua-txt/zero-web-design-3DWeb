@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
-import { BOX_HALF, BOX_SIZE } from '../config.ts'
+import { BOX_CENTER_Y, BOX_PLAN, BOX_SIZE, RIG_SCALE } from '../config.ts'
 import {
   brassMaterial,
   glowSpriteMaterial,
@@ -12,8 +12,9 @@ import {
 import type { QualitySettings } from './quality.ts'
 import { glowTexture } from './textures.ts'
 
-const S = BOX_SIZE
-const H = BOX_HALF
+/** 棂笼内部尺寸都按「设计基准」（1 倍）书写，整组再乘 RIG_SCALE */
+const S = BOX_SIZE / RIG_SCALE
+const H = S / 2
 const FRAME = H + 0.17
 const PANEL = H + 0.1
 const LATTICE = H + 0.13
@@ -133,6 +134,10 @@ function brassMedallion(): THREE.BufferGeometry {
 export function createLantern(q: QualitySettings): Lantern {
   const group = new THREE.Group()
   group.name = 'lattice-lantern'
+  // 整套装置按 RIG_SCALE 放大（棂条、绢面、须弥座一起），平面再乘 BOX_PLAN；
+  // 盒心抬到 BOX_CENTER_Y，须弥座底面正好压在桌面上。
+  group.scale.set(RIG_SCALE * BOX_PLAN, RIG_SCALE, RIG_SCALE * BOX_PLAN)
+  group.position.y = BOX_CENTER_Y
 
   const wood = woodMaterial()
   const brass = brassMaterial()

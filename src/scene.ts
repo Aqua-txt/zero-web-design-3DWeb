@@ -27,11 +27,13 @@ export interface SceneKit {
   /** 切换白天 / 秋夜 */
   setTimeOfDay(next: TimeOfDay): void
   timeOfDay(): TimeOfDay
+  /** 玩法事件反馈：合成 / 化光时让庭院里的猫、鸟、萤火有反应 */
+  react(level: number): void
 }
 
 /** 开场结束后的机位：石案居中，建筑留在画面里（世界坐标，不随庭院放大而拉远，盒子始终是主角） */
-const BASE_CAMERA = new THREE.Vector3(15, 18, 18)
-const BASE_TARGET = new THREE.Vector3(0, -2.6, -3)
+const BASE_CAMERA = new THREE.Vector3(17.5, 20.5, 21.5)
+const BASE_TARGET = new THREE.Vector3(0, -1.9, -2.5)
 
 /**
  * 庭院本地坐标 → 世界坐标。夜庭院整体按 COURT_SCALE 放大并下移到 GROUND_Y，
@@ -99,7 +101,6 @@ function createAim(): { aim: THREE.Group; aimRing: THREE.Mesh } {
   ring.rotation.x = -Math.PI / 2
   ring.position.y = BOX_HALF + 0.03
   aim.add(ring)
-
   const jade = new THREE.MeshBasicMaterial({
     color: 0x3e7a63,
     transparent: true,
@@ -355,5 +356,6 @@ export function createScene(container: HTMLElement): SceneKit {
     playIntro,
     setTimeOfDay,
     timeOfDay: () => night.timeOfDay(),
+    react: (level: number) => creatures.react(level),
   }
 }
