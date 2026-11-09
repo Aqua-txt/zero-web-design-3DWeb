@@ -2,7 +2,8 @@ import * as THREE from 'three'
 import type { TimeOfDay } from '../config.ts'
 import { mulberry32 } from './noise.ts'
 import type { QualitySettings } from './quality.ts'
-import { GROUND_Y, TABLE_TOP } from './stoneSet.ts'
+import { GROUND_Y, STONE_PLAN, TABLE_TOP } from './stoneSet.ts'
+import { COURT_SCALE } from './nightCourt.ts'
 
 /** 石凳座面高度（与 stoneSet 的建法一致：座面顶 = 地面 + 1.48 + 0.16） */
 const STOOL_TOP = GROUND_Y + 1.64
@@ -200,10 +201,10 @@ function buildFireflies(count: number): {
   const size = new Float32Array(count)
   const spots: Array<[number, number]> = []
   for (let i = 0; i < count; i++) {
-    // 沿院子两侧的草木带分布，避开中央石案
+    // 沿院子两侧的草木带分布，避开中央石案（本地坐标 × 庭院缩放，跟着院子一起变大）
     const side = i % 2 === 0 ? -1 : 1
-    const x = side * (9 + rnd() * 15)
-    const z = -22 + rnd() * 40
+    const x = side * (4.5 + rnd() * 7.5) * COURT_SCALE
+    const z = (-11 + rnd() * 20) * COURT_SCALE
     spots.push([x, z])
     base.set([x, GROUND_Y + 1.2 + rnd() * 3.6, z], i * 3)
     seed[i] = rnd()
@@ -278,15 +279,17 @@ export function createCreatures(q: QualitySettings, initial: TimeOfDay): Creatur
   group.name = 'creatures'
 
   const cat = buildCat()
-  // 蹲在左侧石凳上（stoneSet 的石凳位置是 (-7.8, 2.6)），面朝石案
-  cat.group.position.set(-7.8, STOOL_TOP, 2.6)
+  // 蹲在左侧石凳上（stoneSet 的石凳位置是 (-7.8, 2.6)，整体按 STONE_PLAN 收束），面朝石案
+  const stoolX = -7.8 * STONE_PLAN
+  const stoolZ = 2.6 * STONE_PLAN
+  cat.group.position.set(stoolX, STOOL_TOP, stoolZ)
   cat.group.scale.setScalar(1.3)
-  cat.group.rotation.y = Math.atan2(7.8, -2.6)
+  cat.group.rotation.y = Math.atan2(-stoolX, -stoolZ)
   group.add(cat.group)
 
   const birdSpots: Array<[number, number, number]> = [
-    [5.1, TABLE_TOP, -1.1],
-    [4.4, TABLE_TOP, 1.9],
+    [5.1 * STONE_PLAN, TABLE_TOP, -1.1 * STONE_PLAN],
+    [4.4 * STONE_PLAN, TABLE_TOP, 1.9 * STONE_PLAN],
   ]
   const birds: Bird[] = birdSpots.map(([x, y, z], i) => {
     const bird = buildBird(i === 0 ? 0.6 : -1.4)

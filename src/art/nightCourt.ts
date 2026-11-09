@@ -35,7 +35,7 @@ const GROUND_Y = -7.2
  * 庭院整体缩放。石桌与棂笼保持原尺寸，因此院子放大后建筑才压得住场，
  * 不再出现「一只盒子塞满院子」的观感。
  */
-export const COURT_SCALE = 2
+export const COURT_SCALE = 2.7
 
 /** 「福」影壁贴图的宽高比（src/assets/fu-yingbi.png 实际像素 454×437） */
 const FU_PANEL_ASPECT = 454 / 437
@@ -705,8 +705,8 @@ export function createNightCourt(
     yard.receiveShadow = true;
     yard.userData.noOutline = true;
     groundG.add(yard);
-    /* base top surface beyond the walls */
-    const apron = new THREE.Mesh(new THREE.BoxGeometry(45.8, 0.16, 45.8), toon(0x6b6153, { rough: 0.95 }));
+    /* base top surface beyond the walls：庭院放大后基座也要跟着外扩，免得从院外全景看到硬边 */
+    const apron = new THREE.Mesh(new THREE.BoxGeometry(64, 0.16, 64), toon(0x6b6153, { rough: 0.95 }));
     apron.position.y = -0.09; apron.receiveShadow = true; apron.userData.noOutline = true;
     groundG.add(apron);
   }

@@ -8,6 +8,12 @@ import { TIME_OF_DAY, type TimeOfDay } from '../config.ts'
 export const GROUND_Y = -7.2
 /** 石桌面高度：棂笼与须弥座坐落于此 */
 export const TABLE_TOP = -3.85
+/**
+ * 石案一组在平面（XZ）上的收束比例。只压平面不压高度：
+ * 桌面高度不动，棂笼仍旧稳稳坐在上面；石凳、石灯笼、桌上摆件随桌面一起收。
+ * 与石案有固定相对位置的物件（猫、小鸟）要用同一个比例换算。
+ */
+export const STONE_PLAN = 0.82
 const TABLE_R = 6.2
 
 /** 石桌、须弥座与石凳 */
@@ -197,6 +203,18 @@ export function createStoneSet(): StoneSet {
   const lantern = buildStoneLantern()
   group.add(lantern.group)
   group.add(buildTableProps())
+
+  // 石案这一组在平面上按比例收束（只收 XZ，桌面高度不变，棂笼照样坐得住），
+  // 桌子与石凳、石灯笼一起收，免得地面显得被一张大石案占满。
+  const plan = new THREE.Group()
+  plan.name = 'stone-plan'
+  plan.scale.set(STONE_PLAN, 1, STONE_PLAN)
+  for (const child of [...group.children]) {
+    group.remove(child)
+    plan.add(child)
+  }
+  group.add(plan)
+
   return {
     group,
     setTimeOfDay: (next) => {
