@@ -4,8 +4,8 @@ import { BOX_HALF } from './config.ts'
 import { FX } from './art/fx.ts'
 import { createCreatures } from './art/creatures.ts'
 import { createLantern, type Lantern } from './art/lantern.ts'
-import { createNightCourt, type NightCourt } from './art/nightCourt.ts'
-import { createStoneSet } from './art/stoneSet.ts'
+import { createNightCourt, COURT_SCALE, type NightCourt } from './art/nightCourt.ts'
+import { createStoneSet, GROUND_Y } from './art/stoneSet.ts'
 import { detectQuality, qualitySettings, type QualitySettings } from './art/quality.ts'
 import { TIME_OF_DAY, type TimeOfDay } from './config.ts'
 
@@ -27,45 +27,58 @@ export interface SceneKit {
   /** 切换白天 / 秋夜 */
   setTimeOfDay(next: TimeOfDay): void
   timeOfDay(): TimeOfDay
+  /** 玩法事件反馈：合成 / 化光时让庭院里的猫、鸟、萤火有反应 */
+  react(level: number): void
 }
 
-/** 开场结束后的机位：石案居中，建筑留在画面里 */
-const BASE_CAMERA = new THREE.Vector3(23, 16.5, 14)
-const BASE_TARGET = new THREE.Vector3(0, -2.6, -3)
+/** 开场结束后的机位：石案居中，建筑留在画面里（世界坐标，不随庭院放大而拉远，盒子始终是主角） */
+const BASE_CAMERA = new THREE.Vector3(17.5, 20.5, 21.5)
+const BASE_TARGET = new THREE.Vector3(0, -1.9, -2.5)
 
 /**
- * 开场镜头关键帧（世界坐标；庭院按 COURT_SCALE=2 放大后的实际尺寸）。
- * 大门在 z=32，迎门影壁在 z≈25.2，月洞门隔墙在 z=16，主庭院与石案在 z<16。
+ * 庭院本地坐标 → 世界坐标。夜庭院整体按 COURT_SCALE 放大并下移到 GROUND_Y，
+ * 所以开场镜头的关键帧一律用本地坐标书写，改庭院尺寸时镜头自动跟着走。
+ * 本地 z=16 是大门、z≈12.6 是迎门影壁、z=8 是月洞门隔墙、z<8 是主庭院与石案。
  */
+const courtToWorld = ([x, y, z]: readonly [number, number, number]): THREE.Vector3 =>
+  new THREE.Vector3(x * COURT_SCALE, GROUND_Y + y * COURT_SCALE, z * COURT_SCALE)
+
+/** 开场镜头关键帧（庭院本地坐标） */
 const INTRO_SHOTS = {
-  panorama: { pos: new THREE.Vector3(34, 23, 86), target: new THREE.Vector3(0, 9, 6) },
-  beforeGate: { pos: new THREE.Vector3(2, -0.6, 52), target: new THREE.Vector3(0, -3.2, 32) },
+  panorama: {
+    pos: courtToWorld([17, 15.1, 43]),
+    target: courtToWorld([0, 8.1, 3]),
+  },
+  beforeGate: {
+    pos: courtToWorld([1, 3.3, 26]),
+    target: courtToWorld([0, 2.0, 16]),
+  },
 }
 
-/** 入院路线：门洞 → 绕过迎门影壁 → 穿月洞门 → 院内抬升 → 对准石案 */
-const INTRO_PATH: Array<[number, number, number]> = [
-  [2, -0.6, 52],
-  [0.8, -2.8, 33],
-  [8.0, -2.8, 28.5],
-  [7.0, -3.0, 20.5],
-  [0.8, -3.0, 17.4],
-  [0.7, -3.0, 16.0],
-  [0.6, -3.0, 14.2],
-  [5.0, 1.5, 10.5],
+/** 入院路线：门洞 → 绕过迎门影壁 → 穿月洞门 → 院内抬升 → 对准石案（本地坐标） */
+const INTRO_PATH: ReadonlyArray<readonly [number, number, number]> = [
+  [1, 3.3, 26],
+  [0.4, 2.2, 16.5],
+  [4, 2.2, 14.25],
+  [3.5, 2.1, 10.25],
+  [0.4, 2.1, 8.7],
+  [0.35, 2.1, 8],
+  [0.3, 2.1, 7.1],
+  [2.5, 4.35, 5.25],
 ]
-const INTRO_LOOK: Array<[number, number, number]> = [
-  [0, -3.2, 33],
-  [4.0, -3.0, 26],
-  [6.0, -3.0, 20],
-  [0.5, -3.0, 14],
-  [0.5, -2.9, 10],
-  [2.0, -2.5, 4],
-  [0.5, -2.6, -1],
-  [0, -2.6, -3],
+const INTRO_LOOK: ReadonlyArray<readonly [number, number, number]> = [
+  [0, 2.0, 16.5],
+  [2, 2.1, 13],
+  [3, 2.1, 10],
+  [0.25, 2.1, 7],
+  [0.25, 2.15, 5],
+  [1, 2.35, 2],
+  [0.25, 2.3, -0.5],
+  [0, 2.3, -1.5],
 ]
 
 /** 分段时长：推近全景 → 开门 → 沿路线入院并入位 */
-const INTRO_PHASE = { approach: 2.4, gate: 1.0, enter: 3.8 }
+const INTRO_PHASE = { approach: 2.6, gate: 1.0, enter: 4.3 }
 
 function smoothstep(k: number): number {
   const t = THREE.MathUtils.clamp(k, 0, 1)
@@ -88,7 +101,6 @@ function createAim(): { aim: THREE.Group; aimRing: THREE.Mesh } {
   ring.rotation.x = -Math.PI / 2
   ring.position.y = BOX_HALF + 0.03
   aim.add(ring)
-
   const jade = new THREE.MeshBasicMaterial({
     color: 0x3e7a63,
     transparent: true,
@@ -149,7 +161,8 @@ export function createScene(container: HTMLElement): SceneKit {
   controls.rotateSpeed = 0.65
   controls.zoomSpeed = 0.7
   controls.minDistance = 14
-  controls.maxDistance = 70
+  // 庭院放大后仍要能拉远看全景
+  controls.maxDistance = 70 + COURT_SCALE * 18
   controls.maxPolarAngle = 1.44
   controls.target.copy(INTRO_SHOTS.panorama.target)
   // 开场动画结束前不接管相机
@@ -233,9 +246,9 @@ export function createScene(container: HTMLElement): SceneKit {
 
   const buildIntroCurves = (): void => {
     const end = settlePose()
-    const pts = INTRO_PATH.map(([x, y, z]) => new THREE.Vector3(x, y, z))
+    const pts = INTRO_PATH.map((p) => courtToWorld(p))
     pts.push(end.pos)
-    const looks = INTRO_LOOK.map(([x, y, z]) => new THREE.Vector3(x, y, z))
+    const looks = INTRO_LOOK.map((p) => courtToWorld(p))
     looks.push(end.target)
     pathCurve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.35)
     lookCurve = new THREE.CatmullRomCurve3(looks, false, 'catmullrom', 0.35)
@@ -343,5 +356,6 @@ export function createScene(container: HTMLElement): SceneKit {
     playIntro,
     setTimeOfDay,
     timeOfDay: () => night.timeOfDay(),
+    react: (level: number) => creatures.react(level),
   }
 }

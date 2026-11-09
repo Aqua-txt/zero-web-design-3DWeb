@@ -2,12 +2,19 @@ import * as THREE from 'three'
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
 import { celadonMaterial, stoneMaterial } from './materials.ts'
 import { mulberry32 } from './noise.ts'
-import { TIME_OF_DAY, type TimeOfDay } from '../config.ts'
+import { RIG_SCALE, TABLE_TOP, TIME_OF_DAY, type TimeOfDay } from '../config.ts'
 
 /** 庭院地坪高度：石桌、石凳、石灯笼的共同基准（夜庭院也按此下移对齐） */
 export const GROUND_Y = -7.2
-/** 石桌面高度：棂笼与须弥座坐落于此 */
-export const TABLE_TOP = -3.85
+/** 石桌面高度：与 config 的 TABLE_TOP 同源，棂笼须弥座正好压在上面 */
+export { TABLE_TOP }
+/**
+ * 石案一组在平面（XZ）上的比例，跟棂笼的 RIG_SCALE 联动：
+ * 容器放大后须弥座也更宽，桌面必须同比例放大，桌上摆件才不会撞上底座。
+ */
+export const STONE_PLAN = RIG_SCALE
+/** 桌上摆件（柿子盘、茶盏）各自再缩一圈，给棂笼须弥座让出间隙 */
+const PROP_SHRINK = 0.86
 const TABLE_R = 6.2
 
 /** 石桌、须弥座与石凳 */
@@ -180,6 +187,10 @@ function buildTableProps(): THREE.Group {
   saucer.position.set(4.65, TABLE_TOP + 0.03, 2.75)
   group.add(saucer)
 
+  // 桌面收窄后，摆件也跟着缩一圈（只缩各自几何、位置不动），
+  // 给棂笼的须弥座让出清楚的间隙，避免「盘沿贴着底座」。
+  for (const o of group.children) o.scale.setScalar(PROP_SHRINK)
+
   return group
 }
 
@@ -197,6 +208,18 @@ export function createStoneSet(): StoneSet {
   const lantern = buildStoneLantern()
   group.add(lantern.group)
   group.add(buildTableProps())
+
+  // 石案这一组在平面上按比例收束（只收 XZ，桌面高度不变，棂笼照样坐得住），
+  // 桌子与石凳、石灯笼一起收，免得地面显得被一张大石案占满。
+  const plan = new THREE.Group()
+  plan.name = 'stone-plan'
+  plan.scale.set(STONE_PLAN, 1, STONE_PLAN)
+  for (const child of [...group.children]) {
+    group.remove(child)
+    plan.add(child)
+  }
+  group.add(plan)
+
   return {
     group,
     setTimeOfDay: (next) => {

@@ -1,10 +1,11 @@
-﻿import * as THREE from 'three'
+import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
 import type { QualitySettings } from './quality.ts'
+import { stoneReliefNormal } from './textures.ts'
 import { TIME_OF_DAY, type TimeOfDay } from '../config.ts'
 import fuPanelUrl from '../assets/fu-yingbi.png'
 
@@ -35,7 +36,7 @@ const GROUND_Y = -7.2
  * 庭院整体缩放。石桌与棂笼保持原尺寸，因此院子放大后建筑才压得住场，
  * 不再出现「一只盒子塞满院子」的观感。
  */
-export const COURT_SCALE = 2
+export const COURT_SCALE = 2.7
 
 /** 「福」影壁贴图的宽高比（src/assets/fu-yingbi.png 实际像素 454×437） */
 const FU_PANEL_ASPECT = 454 / 437
@@ -347,6 +348,11 @@ export function createNightCourt(
     });
     m.fog = opt.fog !== false;
     if (opt.bump) { m.bumpMap = opt.bump; m.bumpScale = opt.bumpScale !== undefined ? opt.bumpScale : 0.02; }
+    if (opt.normal) {
+      m.normalMap = opt.normal;
+      const ns = opt.normalScale !== undefined ? opt.normalScale : 0.5;
+      m.normalScale = new THREE.Vector2(ns, ns);
+    }
     return m;
   }
 
@@ -705,8 +711,8 @@ export function createNightCourt(
     yard.receiveShadow = true;
     yard.userData.noOutline = true;
     groundG.add(yard);
-    /* base top surface beyond the walls */
-    const apron = new THREE.Mesh(new THREE.BoxGeometry(45.8, 0.16, 45.8), toon(0x6b6153, { rough: 0.95 }));
+    /* base top surface beyond the walls：庭院放大后基座也要跟着外扩，免得从院外全景看到硬边 */
+    const apron = new THREE.Mesh(new THREE.BoxGeometry(64, 0.16, 64), toon(0x6b6153, { rough: 0.95 }));
     apron.position.y = -0.09; apron.receiveShadow = true; apron.userData.noOutline = true;
     groundG.add(apron);
   }
@@ -891,7 +897,14 @@ export function createNightCourt(
     const head = box(4.28, 0.2, 0.68, toon(0x3f2a19, { rough: 0.76 }));
     put(head, 0, 3.44, GATE.z); gateG.add(head);
     /* stone piers + threshold：门枕石上蹲一对石狮，面朝门外（+z） */
+    /* 石狮用自己的石料副本：小件用更密的浮雕法线，避免纹路被拉伸 */
+    let lionStone: any = null;
+    let lionStoneDark: any = null;
     function stoneLion(withBall: boolean): THREE.Group {
+      if (!lionStone) {
+        lionStone = toon(0x9b968a, { rough: 0.93, normal: stoneReliefNormal(5), normalScale: 0.45 });
+        lionStoneDark = toon(0x807c71, { rough: 0.95, normal: stoneReliefNormal(5), normalScale: 0.4 });
+      }
       const g = new THREE.Group();
       const pill = (r: number, m: any, seg = 12): THREE.Mesh => {
         const o = new THREE.Mesh(new THREE.SphereGeometry(r, seg, Math.max(8, seg - 2)), m);
@@ -899,72 +912,72 @@ export function createNightCourt(
         return o;
       };
       /* 须弥座：下枋、束腰、上枋 */
-      const seat0 = box(0.56, 0.07, 0.68, M.stoneDark); seat0.position.y = 0.035; g.add(seat0);
-      const seat1 = box(0.46, 0.07, 0.58, M.stone); seat1.position.y = 0.105; g.add(seat1);
-      const seat2 = box(0.5, 0.06, 0.62, M.stoneDark); seat2.position.y = 0.17; g.add(seat2);
+      const seat0 = box(0.56, 0.07, 0.68, lionStoneDark); seat0.position.y = 0.035; g.add(seat0);
+      const seat1 = box(0.46, 0.07, 0.58, lionStone); seat1.position.y = 0.105; g.add(seat1);
+      const seat2 = box(0.5, 0.06, 0.62, lionStoneDark); seat2.position.y = 0.17; g.add(seat2);
       /* 蹲坐的身量：后胯敦实、前胸高挺 */
-      const rump = pill(0.2, M.stone); rump.scale.set(0.9, 0.92, 1.06); rump.position.set(0, 0.38, -0.09); g.add(rump);
-      const chest = pill(0.155, M.stone); chest.scale.set(0.96, 1.02, 0.94); chest.position.set(0, 0.46, 0.09); g.add(chest);
-      const shoulder = pill(0.135, M.stone); shoulder.scale.set(1.02, 0.9, 0.9); shoulder.position.set(0, 0.55, 0.03); g.add(shoulder);
+      const rump = pill(0.2, lionStone); rump.scale.set(0.9, 0.92, 1.06); rump.position.set(0, 0.38, -0.09); g.add(rump);
+      const chest = pill(0.155, lionStone); chest.scale.set(0.96, 1.02, 0.94); chest.position.set(0, 0.46, 0.09); g.add(chest);
+      const shoulder = pill(0.135, lionStone); shoulder.scale.set(1.02, 0.9, 0.9); shoulder.position.set(0, 0.55, 0.03); g.add(shoulder);
       /* 胸前绶带 */
-      const sash = new THREE.Mesh(new THREE.TorusGeometry(0.155, 0.02, 6, 22), M.stoneDark);
+      const sash = new THREE.Mesh(new THREE.TorusGeometry(0.155, 0.02, 6, 22), lionStoneDark);
       sash.position.set(0, 0.5, 0.07); sash.scale.set(1.02, 1, 0.92); sash.rotation.x = Math.PI * 0.5;
       sash.castShadow = true; g.add(sash);
       /* 前腿：粗壮直立，爪分三趾 */
       for (const sx of [-1, 1]) {
-        const leg = cyl(0.058, 0.072, 0.3, M.stone, 10); leg.position.set(sx * 0.1, 0.36, 0.18); g.add(leg);
-        const paw = box(0.15, 0.09, 0.21, M.stone); paw.position.set(sx * 0.1, 0.245, 0.2); g.add(paw);
+        const leg = cyl(0.058, 0.072, 0.3, lionStone, 10); leg.position.set(sx * 0.1, 0.36, 0.18); g.add(leg);
+        const paw = box(0.15, 0.09, 0.21, lionStone); paw.position.set(sx * 0.1, 0.245, 0.2); g.add(paw);
         for (let t = -1; t <= 1; t++) {
-          const toe = box(0.032, 0.05, 0.06, M.stoneDark); toe.position.set(sx * 0.1 + t * 0.042, 0.235, 0.305); g.add(toe);
+          const toe = box(0.032, 0.05, 0.06, lionStoneDark); toe.position.set(sx * 0.1 + t * 0.042, 0.235, 0.305); g.add(toe);
         }
       }
       /* 鬃毛底盘 + 两圈卷毛，撑出狮子的轮廓 */
-      const maneBack = pill(0.185, M.stone); maneBack.scale.set(1, 0.95, 0.55); maneBack.position.set(0, 0.69, -0.01); g.add(maneBack);
+      const maneBack = pill(0.185, lionStone); maneBack.scale.set(1, 0.95, 0.55); maneBack.position.set(0, 0.69, -0.01); g.add(maneBack);
       for (const [ringR, curlR, count, z, phase] of [
         [0.185, 0.05, 12, 0.01, 0],
         [0.125, 0.042, 9, 0.08, Math.PI / 9],
       ] as Array<[number, number, number, number, number]>) {
         for (let i = 0; i < count; i++) {
           const a = (i / count) * Math.PI * 2 + phase;
-          const curl = pill(curlR, M.stone, 8);
+          const curl = pill(curlR, lionStone, 8);
           curl.position.set(Math.cos(a) * ringR, 0.69 + Math.sin(a) * ringR, z);
           g.add(curl);
         }
       }
       /* 头：略小于鬃毛，才不像玩偶 */
-      const head = pill(0.135, M.stone); head.scale.set(1, 0.93, 0.96); head.position.set(0, 0.695, 0.12); g.add(head);
+      const head = pill(0.135, lionStone); head.scale.set(1, 0.93, 0.96); head.position.set(0, 0.695, 0.12); g.add(head);
       /* 耳（藏在鬃毛里，只露一点） */
       for (const sx of [-1, 1]) {
-        const ear = pill(0.034, M.stone, 8); ear.scale.set(1, 0.8, 0.6); ear.position.set(sx * 0.148, 0.775, 0.07); g.add(ear);
+        const ear = pill(0.034, lionStone, 8); ear.scale.set(1, 0.8, 0.6); ear.position.set(sx * 0.148, 0.775, 0.07); g.add(ear);
       }
       /* 鼻吻、阔口：贴在球面之前，才看得见 */
-      const muzzle = box(0.13, 0.075, 0.07, M.stone); muzzle.position.set(0, 0.66, 0.235); g.add(muzzle);
-      const nose = box(0.062, 0.035, 0.035, M.stoneDark); nose.position.set(0, 0.678, 0.272); g.add(nose);
+      const muzzle = box(0.13, 0.075, 0.07, lionStone); muzzle.position.set(0, 0.66, 0.235); g.add(muzzle);
+      const nose = box(0.062, 0.035, 0.035, lionStoneDark); nose.position.set(0, 0.678, 0.272); g.add(nose);
       const mouth = box(0.1, 0.022, 0.03, M.inkLine); mouth.position.set(0, 0.638, 0.268); g.add(mouth);
       /* 眉压得低、眼小：才凶 */
       for (const sx of [-1, 1]) {
-        const brow = box(0.072, 0.03, 0.03, M.stoneDark); brow.position.set(sx * 0.058, 0.744, 0.243); brow.rotation.z = sx * 0.3; g.add(brow);
+        const brow = box(0.072, 0.03, 0.03, lionStoneDark); brow.position.set(sx * 0.058, 0.744, 0.243); brow.rotation.z = sx * 0.3; g.add(brow);
         const eye = pill(0.024, M.inkLine, 8); eye.scale.set(1, 0.9, 0.45); eye.position.set(sx * 0.058, 0.714, 0.242); g.add(eye);
       }
       /* 尾：身后上翘再卷回 */
-      const tail1 = pill(0.05, M.stone, 8); tail1.position.set(0, 0.52, -0.27); g.add(tail1);
-      const tail2 = pill(0.045, M.stone, 8); tail2.position.set(0, 0.61, -0.29); g.add(tail2);
-      const tail3 = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.024, 6, 14), M.stone);
+      const tail1 = pill(0.05, lionStone, 8); tail1.position.set(0, 0.52, -0.27); g.add(tail1);
+      const tail2 = pill(0.045, lionStone, 8); tail2.position.set(0, 0.61, -0.29); g.add(tail2);
+      const tail3 = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.024, 6, 14), lionStone);
       tail3.position.set(0, 0.68, -0.28); tail3.rotation.set(Math.PI * 0.5, 0, 0.4);
       tail3.castShadow = true; g.add(tail3);
       if (withBall) {
         /* 雄狮踏绣球 */
-        const orb = pill(0.082, M.stone); orb.position.set(0.115, 0.275, 0.28); g.add(orb);
-        const band = new THREE.Mesh(new THREE.TorusGeometry(0.082, 0.013, 6, 20), M.stoneDark);
+        const orb = pill(0.082, lionStone); orb.position.set(0.115, 0.275, 0.28); g.add(orb);
+        const band = new THREE.Mesh(new THREE.TorusGeometry(0.082, 0.013, 6, 20), lionStoneDark);
         band.position.copy(orb.position); band.rotation.set(1.1, 0.4, 0);
         band.castShadow = true; g.add(band);
       } else {
         /* 雌狮抚幼狮 */
-        const cubBody = pill(0.062, M.stone); cubBody.scale.set(1, 0.92, 1.08); cubBody.position.set(-0.12, 0.27, 0.27); g.add(cubBody);
-        const cubHead = pill(0.05, M.stone); cubHead.position.set(-0.12, 0.375, 0.3); g.add(cubHead);
-        const cubMane = pill(0.042, M.stone, 8); cubMane.scale.set(1, 0.9, 0.6); cubMane.position.set(-0.12, 0.38, 0.27); g.add(cubMane);
+        const cubBody = pill(0.062, lionStone); cubBody.scale.set(1, 0.92, 1.08); cubBody.position.set(-0.12, 0.27, 0.27); g.add(cubBody);
+        const cubHead = pill(0.05, lionStone); cubHead.position.set(-0.12, 0.375, 0.3); g.add(cubHead);
+        const cubMane = pill(0.042, lionStone, 8); cubMane.scale.set(1, 0.9, 0.6); cubMane.position.set(-0.12, 0.38, 0.27); g.add(cubMane);
         for (const sx of [-1, 1]) {
-          const cubEar = pill(0.019, M.stone, 6); cubEar.position.set(-0.12 + sx * 0.03, 0.41, 0.3); g.add(cubEar);
+          const cubEar = pill(0.019, lionStone, 6); cubEar.position.set(-0.12 + sx * 0.03, 0.41, 0.3); g.add(cubEar);
         }
       }
       /* 头微微侧转，雌雄相对 */

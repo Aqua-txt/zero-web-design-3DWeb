@@ -4,6 +4,8 @@ import * as CANNON from 'cannon-es'
 import {
   LEVELS,
   BOX_HALF,
+  BOX_HALF_XZ,
+  BOX_CENTER_Y,
   WALL_EXTRA,
   WALL_T,
   DROP_LIFT,
@@ -11,6 +13,7 @@ import {
   BIRTH,
   BEST_KEY,
   LEGACY_BEST_KEY,
+  CODEX_KEY,
   MAX_MERGE_SCORE,
   OVERFLOW_Y,
   OVERFLOW_HOLD,
@@ -104,16 +107,16 @@ function addWall(cx: number, cy: number, cz: number, hx: number, hy: number, hz:
 }
 
 {
-  const wallBottom = -BOX_HALF
-  const wallTop = BOX_HALF + WALL_EXTRA
+  const wallBottom = BOX_CENTER_Y - BOX_HALF
+  const wallTop = BOX_CENTER_Y + BOX_HALF + WALL_EXTRA
   const sideH = wallTop - wallBottom
   const sideCy = (wallTop + wallBottom) / 2
-  addWall(0, -BOX_HALF - WALL_T / 2, 0, BOX_HALF + WALL_T * 2, WALL_T / 2, BOX_HALF + WALL_T * 2)
-  const sx = BOX_HALF + WALL_T / 2
-  addWall(-sx, sideCy, 0, WALL_T / 2, sideH / 2, BOX_HALF + WALL_T)
-  addWall(sx, sideCy, 0, WALL_T / 2, sideH / 2, BOX_HALF + WALL_T)
-  addWall(0, sideCy, -sx, BOX_HALF + WALL_T, sideH / 2, WALL_T / 2)
-  addWall(0, sideCy, sx, BOX_HALF + WALL_T, sideH / 2, WALL_T / 2)
+  addWall(0, wallBottom - WALL_T / 2, 0, BOX_HALF_XZ + WALL_T * 2, WALL_T / 2, BOX_HALF_XZ + WALL_T * 2)
+  const sx = BOX_HALF_XZ + WALL_T / 2
+  addWall(-sx, sideCy, 0, WALL_T / 2, sideH / 2, BOX_HALF_XZ + WALL_T)
+  addWall(sx, sideCy, 0, WALL_T / 2, sideH / 2, BOX_HALF_XZ + WALL_T)
+  addWall(0, sideCy, -sx, BOX_HALF_XZ + WALL_T, sideH / 2, WALL_T / 2)
+  addWall(0, sideCy, sx, BOX_HALF_XZ + WALL_T, sideH / 2, WALL_T / 2)
   addWall(0, wallTop + WALL_T / 2, 0, sx + WALL_T, WALL_T / 2, sx + WALL_T)
 }
 
@@ -147,7 +150,7 @@ function spawnBall(level: number, x: number, y: number, z: number): Ball {
 
   body.addEventListener('collide', (ev: { body: CANNON.Body }) => {
     const other = bodyToBall.get(ev.body)
-    if (!ball.landed && body.position.y < BOX_HALF + 0.1 && clock.elapsedTime - ball.born > 0.12) {
+    if (!ball.landed && body.position.y < BOX_CENTER_Y + BOX_HALF + 0.1 && clock.elapsedTime - ball.born > 0.12) {
       ball.landed = true
       fx.impact(
         new THREE.Vector3(body.position.x, body.position.y, body.position.z),
@@ -167,6 +170,8 @@ function spawnBall(level: number, x: number, y: number, z: number): Ball {
   scene.add(mesh)
   seen.add(level)
   updateLadder()
+  // 任何一枚珠现世（落的或合的）都记进七宝谱
+  recordPearl(level)
   return ball
 }
 
@@ -203,18 +208,20 @@ function processMerges(): void {
       sfx.maxMerge()
       flashScreen()
       shakeStage()
+      kit.react(8)
       popText(p, `+${gained}`, '双珠化光')
     } else {
       fx.merge(p3, lvl, LEVELS[lvl - 1].radius, glow)
       sfx.merge(lvl + 1)
+      kit.react(lvl + 1)
       popText(p, `+${gained}`, `${LEVELS[lvl].name} · 成`)
 
       const r = LEVELS[lvl].radius
-      const lim = BOX_HALF - r - 0.03
+      const lim = BOX_HALF_XZ - r - 0.03
       spawnBall(
         lvl + 1,
         THREE.MathUtils.clamp(p.x, -lim, lim),
-        Math.max(p.y, -BOX_HALF + r + 0.02),
+        Math.max(p.y, BOX_CENTER_Y - BOX_HALF + r + 0.02),
         THREE.MathUtils.clamp(p.z, -lim, lim),
       )
     }
@@ -285,8 +292,8 @@ function rollLevel(): number {
 function aimWorld(u: number, v: number): { x: number; z: number; r: number } {
   const r = LEVELS[currentLevel - 1].radius
   return {
-    x: THREE.MathUtils.lerp(-BOX_HALF, BOX_HALF, u),
-    z: THREE.MathUtils.lerp(-BOX_HALF, BOX_HALF, v),
+    x: THREE.MathUtils.lerp(-BOX_HALF_XZ, BOX_HALF_XZ, u),
+    z: THREE.MathUtils.lerp(-BOX_HALF_XZ, BOX_HALF_XZ, v),
     r,
   }
 }
@@ -300,10 +307,10 @@ function dropAt(u: number, v: number): void {
   setTimeout(() => panel.classList.remove('cooling'), DROP_COOLDOWN * 1000)
 
   const { x: mx, z: mz, r } = aimWorld(u, v)
-  const lim = BOX_HALF - r + 0.02
+  const lim = BOX_HALF_XZ - r + 0.02
   const x = THREE.MathUtils.clamp(mx, -lim, lim)
   const z = THREE.MathUtils.clamp(mz, -lim, lim)
-  spawnBall(currentLevel, x, BOX_HALF + r + DROP_LIFT, z)
+  spawnBall(currentLevel, x, BOX_CENTER_Y + BOX_HALF + r + DROP_LIFT, z)
   sfx.drop()
 
   currentLevel = nextLevel
@@ -371,14 +378,18 @@ function tickTimer(dt: number): void {
   if (timeLeft <= 0) endGame('time')
 }
 
+function pearlGradient(level: number): string {
+  return `radial-gradient(circle at 34% 28%, rgba(255,255,255,.92), ${cssColor(
+    level,
+  )} 42%, rgba(10,8,8,.75) 100%)`
+}
+
 function dotStyle(dot: HTMLElement, level: number): void {
   const r = LEVELS[level - 1].radius
   const size = 14 + r * 15
   dot.style.width = `${size.toFixed(0)}px`
   dot.style.height = `${size.toFixed(0)}px`
-  dot.style.background = `radial-gradient(circle at 34% 28%, rgba(255,255,255,.92), ${cssColor(
-    level,
-  )} 42%, rgba(10,8,8,.75) 100%)`
+  dot.style.background = pearlGradient(level)
   dot.style.boxShadow = `0 0 ${(8 + r * 6).toFixed(0)}px ${cssGlow(level)}66, inset -2px -3px 6px rgba(0,0,0,.4)`
 }
 
@@ -389,16 +400,146 @@ function updateQueueUI(): void {
   nextName.textContent = LEVELS[nextLevel - 1].name
 }
 
-function updateLadder(): void {
+function updateLadder(fresh = 0): void {
   const maxSeen = Math.max(0, ...seen)
   ladder.querySelectorAll<HTMLElement>('[data-level]').forEach((el) => {
     const lv = Number(el.dataset.level)
-    el.classList.toggle('on', seen.has(lv))
+    const known = codex.has(lv)
+    el.classList.toggle('on', known)
     el.classList.toggle('current', lv === maxSeen)
+    el.classList.toggle('fresh', lv === fresh)
     el.style.setProperty('--c', cssColor(lv))
-    el.title = LEVELS[lv - 1].name
+    el.title = known ? LEVELS[lv - 1].name : '未识之珠'
+    if (lv === fresh) window.setTimeout(() => el.classList.remove('fresh'), 700)
   })
 }
+
+/* ================= 七宝谱 ================= */
+
+/** 谱上小注：每号珠一句，图鉴里显示 */
+const CODEX_LORE = [
+  '南海之贝，白如霜雪',
+  '赤玉生海底，千年一枝',
+  '老松凝脂，藏光于内',
+  '冰裂如秋水，触之生凉',
+  '金箔入琉璃，一照成虹',
+  '星屑坠琼枝，紫气自生',
+  '月华所凝，可照一室',
+]
+
+const codex = new Set<number>()
+try {
+  const raw: unknown = JSON.parse(localStorage.getItem(CODEX_KEY) ?? '[]')
+  if (Array.isArray(raw)) {
+    for (const v of raw) {
+      if (Number.isInteger(v) && v >= 1 && v <= LEVELS.length) codex.add(v as number)
+    }
+  }
+} catch {
+  /* 存档损坏就当新谱 */
+}
+
+const elCodex = document.getElementById('codex')!
+const elCodexList = document.getElementById('codex-list')!
+const elCodexCount = document.getElementById('codex-count')!
+const elToast = document.getElementById('codex-toast')!
+
+const CODEX_MARK = ['砗', '珊', '蜜', '玉', '琉', '紫', '夜']
+
+function renderCodex(): void {
+  elCodexCount.textContent = `已识 ${codex.size} / ${LEVELS.length}`
+  elCodexList.innerHTML = ''
+  LEVELS.forEach((def, i) => {
+    const lv = i + 1
+    const known = codex.has(lv)
+    const li = document.createElement('li')
+    li.className = known ? 'known' : 'unknown'
+
+    const dot = document.createElement('span')
+    dot.className = 'c-dot'
+    dot.style.background = known
+      ? pearlGradient(lv)
+      : 'radial-gradient(circle at 34% 28%, rgba(255,255,255,.6), rgba(150,132,108,.7) 70%)'
+
+    const main = document.createElement('div')
+    main.className = 'c-main'
+    const name = document.createElement('span')
+    name.className = 'c-name'
+    name.textContent = known ? def.name : '未识之珠'
+    const lore = document.createElement('span')
+    lore.className = 'c-lore'
+    lore.textContent = known ? `${CODEX_LORE[i]} · ${def.score} 分` : '合出此珠，谱上落印'
+    main.append(name, lore)
+
+    const mark = document.createElement('span')
+    mark.className = 'c-mark'
+    mark.textContent = known ? CODEX_MARK[i] : '？'
+
+    li.append(dot, main, mark)
+    elCodexList.append(li)
+  })
+}
+
+let toastTimer = 0
+function codexToast(title: string, sub: string): void {
+  elToast.innerHTML = ''
+  const b = document.createElement('b')
+  b.textContent = title
+  const i = document.createElement('i')
+  i.textContent = sub
+  elToast.append(b, i)
+  elToast.hidden = false
+  // 重播入场动画
+  elToast.style.animation = 'none'
+  void elToast.offsetWidth
+  elToast.style.animation = ''
+  window.clearTimeout(toastTimer)
+  toastTimer = window.setTimeout(() => {
+    elToast.hidden = true
+  }, 2400)
+}
+
+/** 初次合出某号珠：记入谱中、落印、磬声 */
+function recordPearl(level: number): void {
+  if (codex.has(level)) return
+  codex.add(level)
+  try {
+    localStorage.setItem(CODEX_KEY, JSON.stringify([...codex]))
+  } catch {
+    /* 隐私模式下写不了就算了 */
+  }
+  sfx.codex(level)
+  updateLadder(level)
+  codexToast(`初见 · ${LEVELS[level - 1].name}`, `七宝谱 记 ${codex.size} / ${LEVELS.length}`)
+  if (codex.size === LEVELS.length) {
+    sfx.codexComplete()
+    flashScreen()
+    window.setTimeout(() => codexToast('七宝齐辉', '七宝谱 · 全'), 900)
+  }
+}
+
+let codexOpen = false
+
+function openCodex(open: boolean): void {
+  codexOpen = open
+  if (open) renderCodex()
+  elCodex.hidden = !open
+}
+
+ladder.addEventListener('click', () => {
+  sfx.click()
+  openCodex(!codexOpen)
+})
+document.getElementById('codex-close')!.addEventListener('click', () => {
+  sfx.click()
+  openCodex(false)
+})
+elCodex.addEventListener('click', (ev) => {
+  if (ev.target === elCodex) openCodex(false)
+})
+window.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && codexOpen) openCodex(false)
+})
 
 let lastUV = { u: 0.5, v: 0.5 }
 
@@ -408,7 +549,7 @@ const PANEL_PAD = 0.075
 function refreshAim(): void {
   if (!aim.visible) return
   const { x, z, r } = aimWorld(lastUV.u, lastUV.v)
-  aim.position.set(x, 0, z)
+  aim.position.set(x, BOX_CENTER_Y, z)
   aimRing.scale.setScalar(r)
 }
 
@@ -658,10 +799,10 @@ function drawTopView(): void {
 
   const pad = px * PANEL_PAD
   const inner = px - pad * 2
-  const span = 2 * BOX_HALF
-  const toPxX = (wx: number) => pad + ((wx + BOX_HALF) / span) * inner
-  const toPxY = (wz: number) => pad + ((wz + BOX_HALF) / span) * inner
-  const toPxR = (r: number) => (r / BOX_HALF) * (inner / 2)
+  const span = 2 * BOX_HALF_XZ
+  const toPxX = (wx: number) => pad + ((wx + BOX_HALF_XZ) / span) * inner
+  const toPxY = (wz: number) => pad + ((wz + BOX_HALF_XZ) / span) * inner
+  const toPxR = (r: number) => (r / BOX_HALF_XZ) * (inner / 2)
 
   tvCtx.clearRect(0, 0, px, px)
 
@@ -717,7 +858,7 @@ function stepPhysics(dt: number): void {
     const p = b.body.position
     const r = LEVELS[b.level - 1].radius
     const v = b.body.velocity
-    const lim = BOX_HALF - r + 0.08
+    const lim = BOX_HALF_XZ - r + 0.08
     if (p.x < -lim) {
       p.x = -lim
       if (v.x < 0) v.x = 0
@@ -732,21 +873,21 @@ function stepPhysics(dt: number): void {
       p.z = lim
       if (v.z > 0) v.z = 0
     }
-    const floorY = -BOX_HALF + r - 0.08
+    const floorY = BOX_CENTER_Y - BOX_HALF + r - 0.08
     if (p.y < floorY) {
       p.y = floorY
       if (v.y < 0) v.y = 0
     }
-    const ceilY = BOX_HALF + WALL_EXTRA - r + 0.08
+    const ceilY = BOX_CENTER_Y + BOX_HALF + WALL_EXTRA - r + 0.08
     if (p.y > ceilY) {
       p.y = ceilY
       if (v.y > 0) v.y = 0
     }
-    if (p.y < -BOX_HALF - 2 || Math.abs(p.x) > BOX_HALF + 2 || Math.abs(p.z) > BOX_HALF + 2) {
-      const lim2 = BOX_HALF - r - 0.03
+    if (p.y < BOX_CENTER_Y - BOX_HALF - 2 || Math.abs(p.x) > BOX_HALF_XZ + 2 || Math.abs(p.z) > BOX_HALF_XZ + 2) {
+      const lim2 = BOX_HALF_XZ - r - 0.03
       p.x = THREE.MathUtils.clamp(p.x, -lim2, lim2)
       p.z = THREE.MathUtils.clamp(p.z, -lim2, lim2)
-      p.y = BOX_HALF + r + 0.4
+      p.y = BOX_CENTER_Y + BOX_HALF + r + 0.4
       b.body.velocity.set(0, -1, 0)
       b.body.angularVelocity.set(0, 0, 0)
     }

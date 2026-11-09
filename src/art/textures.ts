@@ -21,18 +21,19 @@ function toTexture(canvas: HTMLCanvasElement, color: boolean): THREE.CanvasTextu
   return tex
 }
 
-/** 高度图 → 法线图（Sobel 近似） */
-function heightToNormal(height: HTMLCanvasElement, strength: number): THREE.CanvasTexture {
+/** 高度图 → 法线图（Sobel 近似）；wrap=true 时按平铺取样，边缘不会留接缝 */
+function heightToNormal(height: HTMLCanvasElement, strength: number, wrap = false): THREE.CanvasTexture {
   const w = height.width
   const h = height.height
   const src = height.getContext('2d')!.getImageData(0, 0, w, h).data
   const out = makeCanvas(w, h)
   const octx = out.getContext('2d')!
   const img = octx.createImageData(w, h)
+  const wrapIndex = (v: number, n: number): number => ((v % n) + n) % n
 
   const lum = (x: number, y: number): number => {
-    const cx = Math.max(0, Math.min(w - 1, x))
-    const cy = Math.max(0, Math.min(h - 1, y))
+    const cx = wrap ? wrapIndex(x, w) : Math.max(0, Math.min(w - 1, x))
+    const cy = wrap ? wrapIndex(y, h) : Math.max(0, Math.min(h - 1, y))
     return src[(cy * w + cx) * 4]
   }
 
@@ -440,5 +441,89 @@ export function stoneTexture(): THREE.CanvasTexture {
 
   stoneTex = toTexture(canvas, true)
   return stoneTex
+}
+
+/* ------------------------------------------------------------------ */
+/* 石面浮雕法线：可平铺的花岗岩颗粒 + 錾纹                              */
+/* ------------------------------------------------------------------ */
+
+let stoneNormalBase: THREE.CanvasTexture | null = null
+const stoneNormalCache = new Map<number, THREE.CanvasTexture>()
+
+function hash2(ix: number, iy: number, seed: number): number {
+  let h = Math.imul(ix, 374761393) ^ Math.imul(iy, 668265263) ^ Math.imul(seed, 1442695041)
+  h = Math.imul(h ^ (h >>> 13), 1274126177)
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967295
+}
+
+/** 周期值噪声：格点按 px / py 回绕，所以整张图天然可平铺 */
+function periodicNoise(x: number, y: number, px: number, py: number, seed: number): number {
+  const xi = Math.floor(x)
+  const yi = Math.floor(y)
+  const tx = x - xi
+  const ty = y - yi
+  const sx = tx * tx * (3 - 2 * tx)
+  const sy = ty * ty * (3 - 2 * ty)
+  const x0 = ((xi % px) + px) % px
+  const y0 = ((yi % py) + py) % py
+  const x1 = (x0 + 1) % px
+  const y1 = (y0 + 1) % py
+  const n00 = hash2(x0, y0, seed)
+  const n10 = hash2(x1, y0, seed)
+  const n01 = hash2(x0, y1, seed)
+  const n11 = hash2(x1, y1, seed)
+  return (n00 * (1 - sx) + n10 * sx) * (1 - sy) + (n01 * (1 - sx) + n11 * sx) * sy
+}
+
+const STONE_OCTAVES: ReadonlyArray<readonly [number, number]> = [
+  [4, 0.5],
+  [8, 0.26],
+  [16, 0.14],
+  [32, 0.08],
+]
+
+function buildStoneNormal(): THREE.CanvasTexture {
+  const size = 256
+  const canvas = makeCanvas(size)
+  const ctx = canvas.getContext('2d')!
+  const img = ctx.createImageData(size, size)
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      let h = 0
+      for (const [cells, amp] of STONE_OCTAVES) {
+        const f = cells / size
+        h += periodicNoise(x * f, y * f, cells, cells, cells * 7 + 11) * amp
+      }
+      // 錾纹：横向拉长的细凿痕，叠在颗粒之上
+      const chisel = periodicNoise(x * (6 / size), y * (48 / size), 6, 48, 913) * 0.3
+      const v = Math.round(Math.min(1, h * 0.72 + chisel) * 255)
+      const i = (y * size + x) * 4
+      img.data[i] = v
+      img.data[i + 1] = v
+      img.data[i + 2] = v
+      img.data[i + 3] = 255
+    }
+  }
+
+  ctx.putImageData(img, 0, 0)
+  return heightToNormal(canvas, 0.022, true)
+}
+
+/**
+ * 石面浮雕法线贴图。repeat 决定纹路密度：小件（石狮）用大值，
+ * 大面积台基用小值，避免同一张图在不同尺寸上被拉伸。
+ */
+export function stoneReliefNormal(repeat = 1): THREE.CanvasTexture {
+  const key = Math.round(repeat * 10) / 10
+  const hit = stoneNormalCache.get(key)
+  if (hit) return hit
+
+  if (!stoneNormalBase) stoneNormalBase = buildStoneNormal()
+  const tex = stoneNormalBase.clone()
+  tex.repeat.set(key, key)
+  tex.needsUpdate = true
+  stoneNormalCache.set(key, tex)
+  return tex
 }
 
