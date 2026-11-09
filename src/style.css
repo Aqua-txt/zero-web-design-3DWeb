@@ -76,6 +76,45 @@ body {
   );
 }
 
+/* 最后十秒：屏幕四周泛起的残阳红晕，随漏刻心跳 */
+#danger {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  background:
+    radial-gradient(
+      ellipse at 50% 50%,
+      rgba(160, 34, 22, 0) 34%,
+      rgba(172, 28, 16, 0.32) 66%,
+      rgba(116, 10, 6, 0.95) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(158, 28, 18, 0.34) 0,
+      rgba(150, 28, 18, 0) 22%,
+      rgba(150, 28, 18, 0) 78%,
+      rgba(126, 18, 12, 0.42) 100%
+    );
+}
+#danger.on {
+  animation: danger-beat 1s ease-in-out infinite;
+}
+@keyframes danger-beat {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  30% {
+    opacity: 1;
+  }
+  62% {
+    opacity: 0.86;
+  }
+}
+
 #grain {
   position: fixed;
   inset: 0;
@@ -217,12 +256,59 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+#timer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 1px;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  color: rgba(72, 52, 32, 0.78);
+  font-variant-numeric: tabular-nums;
+}
+#timer .t-icon {
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 2px;
+  font-size: 11.5px;
+  letter-spacing: 0;
+  line-height: 1;
+  color: #f7ecd9;
+  background: rgba(150, 44, 34, 0.8);
+}
+#timer-text {
+  font-family: var(--song);
+  font-size: 15px;
+}
+#timer.warn,
+#timer.warn .t-icon {
+  color: #962c22;
+}
+#timer.warn .t-icon {
+  color: #f7ecd9;
+  background: #ab2f24;
+  animation: timer-pulse 1s ease-in-out infinite;
+}
+#timer.warn #timer-text {
+  animation: timer-pulse 1s ease-in-out infinite;
+}
+@keyframes timer-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
 #ladder {
   display: flex;
   gap: 6px;
   margin-top: 3px;
-}
-#ladder span {
+}#ladder span {
   width: 9px;
   height: 9px;
   border-radius: 50%;
@@ -283,6 +369,59 @@ body {
 #reset:focus-visible {
   outline: 1px solid var(--gold-bright);
   outline-offset: 3px;
+}
+
+/* 昼夜切换：叠在「重开」正下方 */
+#time-toggle {
+  position: fixed;
+  top: 96px;
+  right: 38px;
+  z-index: 20;
+  width: 54px;
+  height: 54px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  cursor: pointer;
+  background: linear-gradient(180deg, #2f3a52, #1e2536);
+  border: 1px solid rgba(255, 224, 178, 0.28);
+  border-radius: 3px;
+  color: #f3e6c9;
+  font-family: var(--kaiti);
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 226, 184, 0.08),
+    0 10px 26px rgba(0, 0, 0, 0.45);
+  transition:
+    transform 0.18s ease,
+    filter 0.18s ease,
+    background 0.2s ease;
+}
+#time-toggle #time-icon {
+  font-size: 17px;
+  line-height: 1;
+}
+#time-toggle i {
+  font-style: normal;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  opacity: 0.85;
+}
+#time-toggle:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.12);
+}
+#time-toggle:active {
+  transform: translateY(1px) scale(0.97);
+}
+#time-toggle:focus-visible {
+  outline: 1px solid var(--gold-bright);
+  outline-offset: 3px;
+}
+#time-toggle.is-day {
+  background: linear-gradient(180deg, #c9a24a, #a37d2d);
+  color: #2a1f10;
 }
 
 /* ---------------- 提示 ---------------- */
@@ -596,7 +735,7 @@ body {
   width: min(560px, 88vw);
   max-height: 88vh;
   overflow: auto;
-  padding: 54px 56px 44px;
+  padding: clamp(28px, 5vh, 54px) 56px clamp(24px, 4vh, 44px);
   text-align: center;
   color: var(--ink);
   background:
@@ -647,10 +786,32 @@ body {
   }
 }
 
+/* 起局卷轴的底纹：棂间七宝图铺满卷面（宽度铺满、垂直居中），中部压一层宣纸雾留给正文 */
+#intro .scroll {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(247, 241, 228, 0.62) 0,
+      rgba(247, 241, 228, 0) 18%,
+      rgba(247, 241, 228, 0) 82%,
+      rgba(247, 241, 228, 0.58) 100%
+    ),
+    radial-gradient(
+      ellipse at 50% 50%,
+      rgba(248, 242, 229, 0.86) 0%,
+      rgba(248, 242, 229, 0.72) 40%,
+      rgba(247, 240, 226, 0.3) 70%,
+      rgba(247, 240, 226, 0.12) 100%
+    ),
+    repeating-linear-gradient(0deg, rgba(110, 86, 54, 0.045) 0 1px, transparent 1px 5px),
+    url('./assets/intro-art.png') center center / cover no-repeat,
+    linear-gradient(180deg, #f2e9d4, #e6d9bd);
+}
+
 .kicker {
-  font-size: 10.5px;
-  letter-spacing: 0.4em;
-  color: rgba(92, 68, 44, 0.6);
+  font-size: 13px;
+  letter-spacing: 0.3em;
+  color: rgba(80, 58, 36, 0.84);
   margin-bottom: 14px;
 }
 .scroll h2 {
@@ -662,17 +823,17 @@ body {
   padding-left: 0.26em;
 }
 .poem {
-  margin: 18px 0 16px;
-  font-size: 15px;
-  line-height: 2.05;
+  margin: 20px 0 18px;
+  font-size: 18px;
+  line-height: 1.95;
   letter-spacing: 0.16em;
-  color: #5b4630;
+  color: #4e3b26;
 }
 .intro-copy {
-  font-size: 12.5px;
-  line-height: 2;
+  font-size: 15px;
+  line-height: 1.9;
   letter-spacing: 0.04em;
-  color: #5f4e3a;
+  color: #4f3f2c;
 }
 .seal-btn {
   display: block;
@@ -710,14 +871,30 @@ body {
   outline-offset: 4px;
 }
 .tiny {
-  font-size: 9.5px;
-  letter-spacing: 0.16em;
-  color: rgba(92, 68, 44, 0.5);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: rgba(78, 56, 34, 0.78);
 }
 
 .end-scroll {
   width: min(420px, 86vw);
   padding: 46px 42px 38px;
+  overflow: hidden;
+}
+.end-scroll #end-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0.95;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 7%, #000 90%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 7%, #000 90%, transparent 100%);
+}
+.end-scroll .end-inner {
+  position: relative;
+  z-index: 1;
 }
 .end-scroll h2 {
   letter-spacing: 0.4em;
@@ -742,13 +919,13 @@ body {
   font-style: normal;
   font-size: 10px;
   letter-spacing: 0.3em;
-  color: rgba(92, 68, 44, 0.6);
+  color: rgba(78, 56, 34, 0.78);
 }
 .end-best {
   margin-top: 6px;
   font-size: 11.5px;
   letter-spacing: 0.14em;
-  color: rgba(92, 68, 44, 0.65);
+  color: rgba(78, 56, 34, 0.8);
 }
 
 /* ---------------- 响应式 ---------------- */
@@ -784,6 +961,12 @@ body {
     height: 60px;
     font-size: 16px;
   }
+  #time-toggle {
+    top: 110px;
+    right: 48px;
+    width: 60px;
+    height: 60px;
+  }
   #panel-wrap {
     right: 48px;
     bottom: 38px;
@@ -800,6 +983,10 @@ body {
   }
   #reset {
     top: 24px;
+    right: 26px;
+  }
+  #time-toggle {
+    top: 88px;
     right: 26px;
   }
   #tips {
@@ -863,6 +1050,18 @@ body {
     height: 46px;
     font-size: 13px;
   }
+  #time-toggle {
+    top: 68px;
+    right: 14px;
+    width: 46px;
+    height: 46px;
+  }
+  #time-toggle #time-icon {
+    font-size: 15px;
+  }
+  #time-toggle i {
+    font-size: 10px;
+  }
   #tips {
     display: none;
   }
@@ -891,7 +1090,7 @@ body {
     padding: 42px 30px 34px;
   }
   .intro-copy {
-    font-size: 12px;
+    font-size: 14px;
   }
 }
 
@@ -916,13 +1115,45 @@ body {
     padding-left: 0.18em;
   }
   .poem {
-    font-size: 13px;
+    font-size: 16px;
   }
   .seal-btn {
     width: 58px;
     height: 58px;
     font-size: 17px;
     margin: 18px auto 8px;
+  }
+}
+
+/* 窗口较矮时收紧开场卷轴，避免「起局」被挤到卷轴外 */
+@media (max-height: 620px) {
+  .scroll {
+    padding: 22px 40px 18px;
+  }
+  .kicker {
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+  .scroll h2 {
+    font-size: 34px;
+  }
+  .poem {
+    margin: 12px 0 10px;
+    font-size: 16px;
+    line-height: 1.8;
+  }
+  .intro-copy {
+    font-size: 14px;
+    line-height: 1.75;
+  }
+  .seal-btn {
+    width: 54px;
+    height: 54px;
+    margin: 12px auto 6px;
+    font-size: 16px;
+  }
+  .tiny {
+    font-size: 11px;
   }
 }
 

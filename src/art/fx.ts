@@ -251,6 +251,72 @@ export class FX {
     })
   }
 
+  /** 匣满：珠堆化作光点，缓缓升向夜空 */
+  ascend(points: THREE.Vector3[], perBall = 10): void {
+    const n = Math.min(points.length * perBall, Math.floor(this.q.particles * 2.4))
+    if (n <= 0) return
+
+    const positions = new Float32Array(n * 3)
+    const seeds: Array<{ from: THREE.Vector3; rf: number; ang: number; rise: number }> = []
+    for (let i = 0; i < n; i++) {
+      const from = points[i % points.length]
+      seeds.push({
+        from,
+        rf: 0.25 + Math.random() * 0.9,
+        ang: Math.random() * Math.PI * 2,
+        rise: 9 + Math.random() * 12,
+      })
+    }
+
+    const geo = new THREE.BufferGeometry()
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+    const mat = new THREE.PointsMaterial({
+      color: 0xfff0c8,
+      size: 0.42,
+      map: glowTexture(),
+      transparent: true,
+      opacity: 1,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      sizeAttenuation: true,
+      toneMapped: false,
+    })
+    const cloud = new THREE.Points(geo, mat)
+    cloud.frustumCulled = false
+    cloud.renderOrder = 6
+
+    const dur = 3.4
+    this.add({
+      obj: cloud,
+      t: 0,
+      dur,
+      tick: (k) => {
+        const e = k * k
+        const arr = geo.getAttribute('position') as THREE.BufferAttribute
+        const data = arr.array as Float32Array
+        for (let i = 0; i < n; i++) {
+          const s = seeds[i]
+          const swirl = s.ang + e * 2.6
+          data[i * 3] = s.from.x + Math.cos(swirl) * s.rf * (1 - e * 0.4)
+          data[i * 3 + 1] = s.from.y + s.rise * e
+          data[i * 3 + 2] = s.from.z + Math.sin(swirl) * s.rf * (1 - e * 0.4)
+        }
+        arr.needsUpdate = true
+        mat.opacity = k < 0.15 ? k / 0.15 : 1 - (k - 0.15) / 0.85
+        mat.size = 0.42 + e * 0.24
+      },
+      cleanup: () => {
+        geo.dispose()
+        mat.dispose()
+      },
+    })
+
+    // 桌面上再补一团暖光与一圈金环，作为「收束」的句点
+    const center = points[0].clone()
+    this.flash(center, 0xfff2cc, 5.2, 1.1)
+    this.ring(center, 0xffe9a8, 6.4, 1.3, 0.5)
+  }
+
   update(dt: number): void {
     for (let i = this.items.length - 1; i >= 0; i--) {
       const item = this.items[i]

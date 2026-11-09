@@ -20,6 +20,11 @@ export const BIRTH = 0.38
 /** 最高分 localStorage key（同时兼容旧版键名） */
 export const BEST_KEY = 'lingjian-diezhu-best'
 export const LEGACY_BEST_KEY = 'watermelon3d-best'
+
+/** 场景时段：'night' 秋夜 / 'day' 白天 */
+export type TimeOfDay = 'night' | 'day'
+/** 当前时段（切换白天/夜晚只改这一处） */
+export const TIME_OF_DAY: TimeOfDay = 'day'
 /** 两枚 7 号珠相消的奖励分 */
 export const MAX_MERGE_SCORE = 100
 
@@ -28,6 +33,13 @@ export const OVERFLOW_Y = BOX_HALF + 0.12
 export const OVERFLOW_HOLD = 1.6
 /** 落珠后多久才参与匣满判定（避免把正在下落的珠子算作溢出） */
 export const OVERFLOW_GRACE = 1.2
+
+/** 一局时辰：两分钟香尽即收卷 */
+export const ROUND_SECONDS = 120
+/** 剩余时间进入此值后，漏刻转为朱红闪烁 */
+export const ROUND_WARN = 30
+/** 最后十秒：屏幕四周泛红晕，并每秒一声催更的木鱼 */
+export const DANGER_SECONDS = 10
 
 export type PearlKind = 'conch' | 'coral' | 'amber' | 'jade' | 'glass' | 'amethyst' | 'night'
 

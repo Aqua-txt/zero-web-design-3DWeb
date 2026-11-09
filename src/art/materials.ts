@@ -5,18 +5,10 @@ import type { PearlKind } from '../config.ts'
 import type { QualitySettings } from './quality.ts'
 import {
   amberFlowTexture,
-  barkTexture,
-  dustTexture,
   goldFleckTexture,
   iceCrackNormal,
-  inkScreenTexture,
-  leafClusterTexture,
-  leafSpriteTexture,
-  plasterTexture,
-  repeatedWood,
   silkGlowTexture,
   silkTexture,
-  stonePaversTexture,
   stoneTexture,
   woodTexture,
 } from './textures.ts'
@@ -26,7 +18,6 @@ import {
 /* ------------------------------------------------------------------ */
 
 let woodMat: THREE.MeshPhysicalMaterial | null = null
-let deskMat: THREE.MeshPhysicalMaterial | null = null
 let brassMat: THREE.MeshPhysicalMaterial | null = null
 let jadeSlabMat: THREE.MeshPhysicalMaterial | null = null
 
@@ -48,23 +39,6 @@ export function woodMaterial(): THREE.MeshPhysicalMaterial {
   return woodMat
 }
 
-export function deskMaterial(): THREE.MeshPhysicalMaterial {
-  if (!deskMat) {
-    deskMat = new THREE.MeshPhysicalMaterial({
-      map: repeatedWood(5, 3),
-      color: 0xffffff,
-      roughness: 0.65,
-      metalness: 0,
-      clearcoat: 0,
-      clearcoatRoughness: 0.6,
-      envMapIntensity: 0,
-      emissive: new THREE.Color(0x1a0d06),
-      emissiveIntensity: 0.38,
-    })
-    deskMat.name = 'lacquer-desk'
-  }
-  return deskMat
-}
 
 export function brassMaterial(): THREE.MeshPhysicalMaterial {
   if (!brassMat) {
@@ -127,33 +101,8 @@ export function silkMaterial(opacity = 0.24): THREE.MeshPhysicalMaterial {
 /* 秋日庭院                                                            */
 /* ------------------------------------------------------------------ */
 
-let groundMat: THREE.MeshStandardMaterial | null = null
 let stoneMat: THREE.MeshStandardMaterial | null = null
-let plasterMat: THREE.MeshStandardMaterial | null = null
-let barkMat: THREE.MeshStandardMaterial | null = null
-let roofMat: THREE.MeshStandardMaterial | null = null
-let clusterMat: THREE.MeshStandardMaterial | null = null
-let fallingLeafMat: THREE.MeshStandardMaterial | null = null
-let bambooMat: THREE.MeshStandardMaterial | null = null
 
-export function stonePaversMaterial(): THREE.MeshStandardMaterial {
-  if (!groundMat) {
-    const tex = stonePaversTexture().clone()
-    tex.needsUpdate = true
-    tex.wrapS = THREE.RepeatWrapping
-    tex.wrapT = THREE.RepeatWrapping
-    tex.repeat.set(18, 18)
-    groundMat = new THREE.MeshStandardMaterial({
-      map: tex,
-      color: 0xd2c8b6,
-      roughness: 0.9,
-      metalness: 0,
-      envMapIntensity: 0.35,
-    })
-    groundMat.name = 'stone-pavers'
-  }
-  return groundMat
-}
 
 export function stoneMaterial(): THREE.MeshStandardMaterial {
   if (!stoneMat) {
@@ -174,102 +123,6 @@ export function stoneMaterial(): THREE.MeshStandardMaterial {
   return stoneMat
 }
 
-export function plasterMaterial(): THREE.MeshStandardMaterial {
-  if (!plasterMat) {
-    const tex = plasterTexture().clone()
-    tex.needsUpdate = true
-    tex.wrapS = THREE.RepeatWrapping
-    tex.wrapT = THREE.RepeatWrapping
-    tex.repeat.set(2.4, 1.2)
-    plasterMat = new THREE.MeshStandardMaterial({
-      map: tex,
-      color: 0xf2ead9,
-      roughness: 0.95,
-      metalness: 0,
-      side: THREE.DoubleSide,
-      envMapIntensity: 0.3,
-    })
-    plasterMat.name = 'plaster-wall'
-  }
-  return plasterMat
-}
-
-export function barkMaterial(): THREE.MeshStandardMaterial {
-  if (!barkMat) {
-    const tex = barkTexture().clone()
-    tex.needsUpdate = true
-    tex.wrapS = THREE.RepeatWrapping
-    tex.wrapT = THREE.RepeatWrapping
-    tex.repeat.set(2, 3)
-    barkMat = new THREE.MeshStandardMaterial({
-      map: tex,
-      color: 0xffffff,
-      roughness: 0.92,
-      metalness: 0,
-    })
-    barkMat.name = 'maple-bark'
-  }
-  return barkMat
-}
-
-export function roofMaterial(): THREE.MeshStandardMaterial {
-  if (!roofMat) {
-    roofMat = new THREE.MeshStandardMaterial({
-      color: 0x4b5052,
-      roughness: 0.78,
-      metalness: 0.08,
-      envMapIntensity: 0.7,
-    })
-    roofMat.name = 'grey-roof-tile'
-  }
-  return roofMat
-}
-
-export function leafClusterMaterial(): THREE.MeshStandardMaterial {
-  if (!clusterMat) {
-    clusterMat = new THREE.MeshStandardMaterial({
-      map: leafClusterTexture(),
-      alphaTest: 0.34,
-      side: THREE.DoubleSide,
-      roughness: 0.85,
-      metalness: 0,
-      color: 0xffffff,
-      emissive: new THREE.Color(0x2a0f05),
-      emissiveIntensity: 0.3,
-    })
-    clusterMat.name = 'maple-canopy'
-  }
-  return clusterMat
-}
-
-export function fallingLeafMaterial(): THREE.MeshStandardMaterial {
-  if (!fallingLeafMat) {
-    fallingLeafMat = new THREE.MeshStandardMaterial({
-      map: leafSpriteTexture(),
-      alphaTest: 0.4,
-      side: THREE.DoubleSide,
-      roughness: 0.8,
-      metalness: 0,
-      color: 0xffffff,
-      emissive: new THREE.Color(0x2a1206),
-      emissiveIntensity: 0.2,
-    })
-    fallingLeafMat.name = 'falling-leaf'
-  }
-  return fallingLeafMat
-}
-
-export function bambooMaterial(): THREE.MeshStandardMaterial {
-  if (!bambooMat) {
-    bambooMat = new THREE.MeshStandardMaterial({
-      color: 0x6f8f4a,
-      roughness: 0.68,
-      metalness: 0,
-    })
-    bambooMat.name = 'bamboo-stem'
-  }
-  return bambooMat
-}
 
 export function celadonMaterial(): THREE.MeshPhysicalMaterial {
   return new THREE.MeshPhysicalMaterial({
@@ -408,48 +261,6 @@ export function pearlMaterial(kind: PearlKind, q: QualitySettings): THREE.MeshPh
   return mat
 }
 
-/* ------------------------------------------------------------------ */
-/* 场景软装                                                            */
-/* ------------------------------------------------------------------ */
-
-export function inkScreenMaterial(): THREE.MeshBasicMaterial {
-  const mat = new THREE.MeshBasicMaterial({
-    map: inkScreenTexture(),
-    color: 0xb8c4cc,
-    transparent: true,
-    opacity: 0.62,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-    fog: true,
-  })
-  mat.name = 'ink-screen'
-  return mat
-}
-
-export function glowAdditiveMaterial(color: number, opacity: number): THREE.MeshBasicMaterial {
-  return new THREE.MeshBasicMaterial({
-    color,
-    transparent: true,
-    opacity,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-    toneMapped: false,
-  })
-}
-
-export function dustPointsMaterial(): THREE.PointsMaterial {
-  return new THREE.PointsMaterial({
-    color: 0xffe0b0,
-    size: 0.075,
-    map: dustTexture(),
-    transparent: true,
-    opacity: 0.5,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-    sizeAttenuation: true,
-  })
-}
 
 export function glowSpriteMaterial(color: number, opacity: number): THREE.SpriteMaterial {
   return new THREE.SpriteMaterial({
