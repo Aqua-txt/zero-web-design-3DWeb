@@ -616,6 +616,60 @@ body {
   color: #2a1f10;
 }
 
+/* 乐声开关：叠在「昼夜」正下方 */
+#bgm-toggle {
+  position: fixed;
+  top: 160px;
+  right: 38px;
+  z-index: 20;
+  width: 54px;
+  height: 54px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  cursor: pointer;
+  background: linear-gradient(180deg, #2f3a52, #1e2536);
+  border: 1px solid rgba(255, 224, 178, 0.28);
+  border-radius: 3px;
+  color: #f3e6c9;
+  font-family: var(--kaiti);
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 226, 184, 0.08),
+    0 10px 26px rgba(0, 0, 0, 0.45);
+  transition:
+    transform 0.18s ease,
+    filter 0.18s ease;
+}
+#bgm-toggle #bgm-icon {
+  font-size: 17px;
+  line-height: 1;
+}
+#bgm-toggle i {
+  font-style: normal;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  opacity: 0.85;
+}
+#bgm-toggle:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.12);
+}
+#bgm-toggle:active {
+  transform: translateY(1px) scale(0.97);
+}
+#bgm-toggle:focus-visible {
+  outline: 1px solid var(--gold-bright);
+  outline-offset: 3px;
+}
+#bgm-toggle.is-muted {
+  filter: saturate(0.5) brightness(0.8);
+}
+#bgm-toggle.is-muted #bgm-icon {
+  opacity: 0.4;
+}
+
 /* ---------------- 提示 ---------------- */
 
 #tips {
@@ -1159,6 +1213,12 @@ body {
     width: 60px;
     height: 60px;
   }
+  #bgm-toggle {
+    top: 180px;
+    right: 48px;
+    width: 60px;
+    height: 60px;
+  }
   #panel-wrap {
     right: 48px;
     bottom: 38px;
@@ -1179,6 +1239,10 @@ body {
   }
   #time-toggle {
     top: 88px;
+    right: 26px;
+  }
+  #bgm-toggle {
+    top: 152px;
     right: 26px;
   }
   #tips {
@@ -1252,6 +1316,18 @@ body {
     font-size: 15px;
   }
   #time-toggle i {
+    font-size: 10px;
+  }
+  #bgm-toggle {
+    top: 122px;
+    right: 14px;
+    width: 46px;
+    height: 46px;
+  }
+  #bgm-toggle #bgm-icon {
+    font-size: 15px;
+  }
+  #bgm-toggle i {
     font-size: 10px;
   }
   #tips {

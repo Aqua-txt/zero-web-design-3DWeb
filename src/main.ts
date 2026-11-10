@@ -29,7 +29,7 @@ import {
 import { createPearl } from './art/pearls.ts'
 import { createScene } from './scene.ts'
 import { drawInkScroll } from './art/ink.ts'
-import { Sfx } from './audio.ts'
+import { Bgm, Sfx } from './audio.ts'
 
 /* ================= 游戏状态 ================= */
 
@@ -620,9 +620,31 @@ timeBtn.addEventListener('click', () => {
   applyTimeUI()
 })
 
+/* 乐声：起局后循环播放，静音偏好随本地存储 */
+const BGM_KEY = 'lingjian-bgm-muted'
+const bgm = new Bgm(localStorage.getItem(BGM_KEY) === '1')
+const bgmBtn = document.getElementById('bgm-toggle')!
+const bgmLabel = bgmBtn.querySelector('i')!
+
+function applyBgmUI(): void {
+  const muted = bgm.isMuted()
+  bgmLabel.textContent = muted ? '默' : '乐'
+  bgmBtn.classList.toggle('is-muted', muted)
+  bgmBtn.setAttribute('aria-label', muted ? '开启乐声' : '乐声静音')
+}
+
+bgmBtn.addEventListener('click', () => {
+  bgm.toggle()
+  localStorage.setItem(BGM_KEY, bgm.isMuted() ? '1' : '0')
+  sfx.click()
+  applyBgmUI()
+})
+applyBgmUI()
+
 document.getElementById('start')!.addEventListener('click', () => {
   if (started) return
   sfx.start()
+  bgm.start()
   intro.classList.add('leaving')
   window.setTimeout(() => {
     intro.classList.add('hidden')
@@ -970,3 +992,12 @@ updateLadder()
 
 intro.hidden = false
 tick()
+
+/* 首帧已上屏：淡出加载幕，避免把半成品界面露给用户 */
+const boot = document.getElementById('boot')
+if (boot) {
+  window.setTimeout(() => {
+    boot.classList.add('done')
+    window.setTimeout(() => boot.remove(), 700)
+  }, 150)
+}

@@ -84,8 +84,8 @@ const STAGE: Record<TimeOfDay, StagePalette> = {
       mid: new THREE.Color(0.0068, 0.0125, 0.03),
       hor: new THREE.Color(0.026, 0.034, 0.052),
       glow: new THREE.Color(0.03, 0.016, 0.007),
-      halo: new THREE.Color(0.52, 0.63, 0.94),
-      disc: new THREE.Color(2.3, 2.24, 2.05),
+      halo: new THREE.Color(0.34, 0.44, 0.7),
+      disc: new THREE.Color(1.32, 1.36, 1.42),
       curve: new THREE.Vector3(0.2, 0.16, 0.82),
     },
     key: { color: 0xbccdf2, intensity: 1.34, dir: new THREE.Vector3(-42, 50, 47).normalize() },
@@ -106,37 +106,37 @@ const STAGE: Record<TimeOfDay, StagePalette> = {
     exposure: 1.12,
   },
   day: {
-    bg: 0xbcd8ea,
-    fog: 0xcfe0ee,
-    fogDensity: 0.0032,
-    // 太阳压在西北偏西约 10°，开场全景与抬头就能看见
-    bodyDir: new THREE.Vector3(-22, 14, -72).normalize(),
+    /* 傍晚四五点钟：金黄主导的天色，太阳压得更低更偏西 */
+    bg: 0xf0d08e,
+    fog: 0xf2d8a6,
+    fogDensity: 0.0030,
+    bodyDir: new THREE.Vector3(-58, 11, -38).normalize(),
     sky: {
-      top: new THREE.Color(0.055, 0.22, 0.6),
-      mid: new THREE.Color(0.24, 0.5, 0.84),
-      hor: new THREE.Color(0.45, 0.62, 0.82),
-      glow: new THREE.Color(0.3, 0.24, 0.13),
-      halo: new THREE.Color(0.95, 0.88, 0.68),
-      disc: new THREE.Color(3.1, 2.95, 2.6),
-      curve: new THREE.Vector3(0.06, 0.1, 0.6),
+      top: new THREE.Color(0.83, 0.58, 0.24),
+      mid: new THREE.Color(0.95, 0.73, 0.38),
+      hor: new THREE.Color(0.99, 0.86, 0.58),
+      glow: new THREE.Color(0.22, 0.12, 0.04),
+      halo: new THREE.Color(1.0, 0.8, 0.46),
+      disc: new THREE.Color(3.0, 2.72, 2.15),
+      curve: new THREE.Vector3(0.08, 0.14, 0.62),
     },
     // 主光仍放在西南高处：太阳如果也压到 10°，院子会整片背光发黑（风格化取舍）
-    key: { color: 0xffeecd, intensity: 3.5, dir: new THREE.Vector3(-38, 62, 48).normalize() },
-    hemi: { sky: 0xc9e0f5, ground: 0x6b6350, intensity: 0.45 },
-    fill: { color: 0x9fc0e0, intensity: 0.22 },
+    key: { color: 0xffd9a2, intensity: 3.3, dir: new THREE.Vector3(-38, 55, 48).normalize() },
+    hemi: { sky: 0xf0d5a0, ground: 0x7a6a4c, intensity: 0.5 },
+    fill: { color: 0xd6bd8c, intensity: 0.26 },
     envIntensity: 0.72,
     envStops: [
-      ['#3f7fc4', 0],
-      ['#8fb8e0', 0.36],
-      ['#cfe0ea', 0.5],
-      ['#d8d5c6', 0.58],
-      ['#a89f8c', 0.72],
-      ['#6f6858', 1],
+      ['#e2a94e', 0],
+      ['#f0c577', 0.36],
+      ['#f7e0b0', 0.5],
+      ['#e8d6ab', 0.58],
+      ['#b2a077', 0.72],
+      ['#77694e', 1],
     ],
-    envGlow: { core: 'rgba(255,246,220,0.3)', edge: 'rgba(255,246,220,0)' },
-    bloom: 0.22,
+    envGlow: { core: 'rgba(255,238,200,0.34)', edge: 'rgba(255,238,200,0)' },
+    bloom: 0.26,
     lampScale: 0.14,
-    exposure: 0.92,
+    exposure: 0.94,
   },
 }
 
@@ -186,9 +186,12 @@ export function createNightCourt(
         uHalo: { value: stage().sky.halo.clone() },
         uDisc: { value: stage().sky.disc.clone() },
         uCurve: { value: stage().sky.curve.clone() },
+        /* 1 = 月面细节（环形山 + 描边）；白天太阳为 0 */
+        uDetail: { value: isDay() ? 0 : 1 },
       },
       vertexShader: `varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
       fragmentShader: `uniform vec3 uBody, uTop, uMid, uHor, uGlow, uHalo, uDisc, uCurve;
+      uniform float uDetail;
       varying vec3 vDir;
       void main(){
         vec3 d = normalize(vDir);
@@ -205,6 +208,21 @@ export function createNightCourt(
         float limb = smoothstep(0.99890, 0.99928, s);
         col += uHalo * limb * 0.35;
         col = mix(col, uDisc, disc);
+        /* 月面细节：以发光体方向为轴取切平面坐标，叠几团「环形山」暗斑 */
+        if (uDetail > 0.5) {
+          vec3 t1 = normalize(cross(uBody, vec3(0.0, 1.0, 0.02)));
+          vec3 t2 = cross(uBody, t1);
+          vec2 p = vec2(dot(d, t1), dot(d, t2)) / 0.038;
+          float maria = 0.0;
+          maria += smoothstep(0.34, 0.05, length(p - vec2(-0.28, 0.22))) * 0.17;
+          maria += smoothstep(0.30, 0.04, length(p - vec2(0.19, -0.30))) * 0.14;
+          maria += smoothstep(0.24, 0.04, length(p - vec2(0.34, 0.17))) * 0.10;
+          maria += smoothstep(0.20, 0.03, length(p - vec2(-0.09, -0.11))) * 0.09;
+          col -= col * maria * disc;
+          /* 描边：贴着月轮外沿的一圈淡晕环 */
+          float ring = smoothstep(0.99868, 0.99888, s) * (1.0 - smoothstep(0.99908, 0.99926, s));
+          col += uHalo * ring * 0.55;
+        }
         if (d.y < 0.0) col = mix(col, uHor * 0.35, min(-d.y * 4.0, 1.0));
         gl_FragColor = vec4(col, 1.0);
       }`
@@ -252,6 +270,70 @@ export function createNightCourt(
     starPoints = stars;
     root.add(stars);
     anims.push((t: any) => { sm.uniforms.uT.value = t; });
+  }
+
+  /* ---------- clouds (day only) ---------- */
+  const clouds = new THREE.Group();
+  clouds.visible = isDay();
+  root.add(clouds);
+  {
+    /* 远景：Canvas 贴图软云，钉在天空穹壳内侧（浓度要够，否则化在金色天里） */
+    const makeCloudTexture = () => {
+      const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+      const g = c.getContext('2d')!;
+      for (let i = 0; i < 34; i++) {
+        const x = 36 + rng() * 184, y = 44 + rng() * 40, r = 14 + rng() * 32;
+        const rg = g.createRadialGradient(x, y, 2, x, y, r);
+        rg.addColorStop(0, 'rgba(255,252,243,0.85)');
+        rg.addColorStop(0.55, 'rgba(255,250,240,0.38)');
+        rg.addColorStop(1, 'rgba(255,250,240,0)');
+        g.fillStyle = rg;
+        g.fillRect(x - r, y - r, r * 2, r * 2);
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    };
+    for (let i = 0; i < 10; i++) {
+      const mat = new THREE.SpriteMaterial({
+        map: makeCloudTexture(), transparent: true,
+        opacity: rr(0.78, 1.0), fog: false, depthWrite: false,
+      });
+      const sp = new THREE.Sprite(mat);
+      /* 仰角抬到屋脊线以上（22°-52°），地面机位才看得见 */
+      const az = rng() * Math.PI * 2, el = rr(0.38, 0.9), R = 445;
+      sp.position.set(Math.cos(az) * Math.cos(el) * R, Math.sin(el) * R, Math.sin(az) * Math.cos(el) * R);
+      const w = rr(150, 300);
+      sp.scale.set(w, w * rr(0.3, 0.44), 1);
+      clouds.add(sp);
+    }
+    /* 近景：压扁球拼出的朵云，吃光带体积感，缓慢东移（关雾：远处会被金雾洗没） */
+    const puffMat = new THREE.MeshStandardMaterial({
+      color: 0xfffaf0, roughness: 1, metalness: 0, fog: false,
+    });
+    const puffs: Array<{ cl: THREE.Group; speed: number }> = [];
+    for (let i = 0; i < 7; i++) {
+      const cl = new THREE.Group();
+      const n = 3 + Math.floor(rng() * 3);
+      for (let j = 0; j < n; j++) {
+        const r = rr(8, 16);
+        const m = new THREE.Mesh(new THREE.SphereGeometry(r, 14, 10), puffMat);
+        m.position.set((j - (n - 1) / 2) * r * 1.12 + rr(-2, 2), rr(-1.5, 2.5) + r * 0.18, rr(-3, 3));
+        m.scale.y = 0.55;
+        cl.add(m);
+      }
+      const az = rng() * Math.PI * 2, dist = rr(180, 260);
+      cl.position.set(Math.cos(az) * dist, rr(140, 220), Math.sin(az) * dist);
+      clouds.add(cl);
+      puffs.push({ cl, speed: rr(1.1, 2.4) });
+    }
+    anims.push((_t: any, dt: any) => {
+      if (!clouds.visible) return;
+      for (const p of puffs) {
+        p.cl.position.x += p.speed * dt;
+        if (p.cl.position.x > 360) p.cl.position.x = -360;
+      }
+    });
   }
 
   /* ---------- environment maps (both built up-front, swapped on toggle) ---------- */
@@ -1670,9 +1752,10 @@ export function createNightCourt(
     const g = new THREE.Group();
     const s = side;
     const bx = s * 11.65, bz = -5.4;
-    /* body: taller, so the roof shell rests on it */
-    const body = box(3.5, 4.05, 6.4, M.wallOut);
-    put(body, bx, 2.025, bz);
+    /* body: 再削矮——屋面在墙缘中段（az=0.8、脊向中点）最低只到 y≈3.59，
+       墙顶必须压到 3.55 以下才全线不穿模 */
+    const body = box(3.5, 3.3, 6.4, M.wallOut);
+    put(body, bx, 1.65, bz);
     g.add(body);
     /* wooden door + window on courtyard face */
     const face = bx - s * 1.78;
@@ -2539,8 +2622,10 @@ export function createNightCourt(
     ;(u.uHalo.value as THREE.Color).copy(pal.sky.halo)
     ;(u.uDisc.value as THREE.Color).copy(pal.sky.disc)
     ;(u.uCurve.value as THREE.Vector3).copy(pal.sky.curve)
+    u.uDetail.value = next === 'night' ? 1 : 0
 
     if (starPoints) starPoints.visible = next === 'night'
+    clouds.visible = next === 'day'
 
     scene.environment = envMaps[next]
     scene.environmentIntensity = pal.envIntensity

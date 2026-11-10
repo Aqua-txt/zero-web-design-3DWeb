@@ -136,3 +136,37 @@ export class Sfx {
     this.merge(4)
   }
 }
+
+/**
+ * 背景音乐《棂间叠珠》：scripts/make-bgm.mjs 离线合成的原创曲目（public/bgm.mp3）。
+ * 循环播放；须在首个用户手势内 start（Chrome 自动播放策略）。
+ */
+export class Bgm {
+  private el = new Audio('/bgm.mp3')
+  private muted = false
+
+  constructor(muted = false) {
+    this.el.loop = true
+    this.el.volume = 0.32
+    this.setMuted(muted)
+  }
+
+  /** 起局时调用；静默失败不影响游戏 */
+  start(): void {
+    void this.el.play().catch(() => {})
+  }
+
+  setMuted(muted: boolean): void {
+    this.muted = muted
+    this.el.muted = muted
+  }
+
+  isMuted(): boolean {
+    return this.muted
+  }
+
+  toggle(): boolean {
+    this.setMuted(!this.muted)
+    return this.muted
+  }
+}

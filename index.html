@@ -12,8 +12,108 @@
       content="棂间叠珠：一盏灯、一只紫檀棂笼、七宝珠。国风 3D 合成小游戏，同名宝珠相叠，合而为大。"
     />
     <title>棂间叠珠 · 七宝叠光</title>
+    <style>
+      /* 加载幕：内联样式，主包与样式表就绪前先遮住半成品界面 */
+      html {
+        background: #070a0f;
+      }
+      #boot {
+        position: fixed;
+        inset: 0;
+        z-index: 999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        background: radial-gradient(120% 90% at 50% 38%, #101828 0%, #070a0f 68%);
+        color: #e8d9b5;
+        font-family: 'LXGW WenKai', 'KaiTi', 'STKaiti', 'Kaiti SC', 'Songti SC', 'SimSun', serif;
+        transition: opacity 0.6s ease;
+      }
+      #boot.done {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #boot .boot-ring {
+        position: relative;
+        width: 96px;
+        height: 96px;
+      }
+      #boot .boot-ring::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: conic-gradient(
+          from 0deg,
+          rgba(200, 164, 90, 0.95),
+          rgba(200, 164, 90, 0.08) 38%,
+          rgba(200, 164, 90, 0.08) 62%,
+          rgba(200, 164, 90, 0.95)
+        );
+        -webkit-mask: radial-gradient(circle, transparent 62%, #000 64%);
+        mask: radial-gradient(circle, transparent 62%, #000 64%);
+        animation: boot-spin 1.6s linear infinite;
+      }
+      #boot .seal-char {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 44px;
+        color: #d8b46a;
+        text-shadow: 0 0 18px rgba(216, 180, 106, 0.35);
+        animation: boot-pulse 1.6s ease-in-out infinite;
+      }
+      #boot .boot-text {
+        margin: 0;
+        font-size: 14px;
+        letter-spacing: 0.5em;
+        padding-left: 0.5em;
+        opacity: 0.78;
+      }
+      #boot .boot-hint {
+        margin: 0;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        opacity: 0.35;
+      }
+      @keyframes boot-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes boot-pulse {
+        0%,
+        100% {
+          opacity: 0.55;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #boot .boot-ring::before {
+          animation: none;
+        }
+        #boot .seal-char {
+          animation: none;
+          opacity: 0.9;
+        }
+      }
+    </style>
   </head>
   <body>
+    <div id="boot" role="status" aria-label="场景装载中">
+      <div class="boot-ring">
+        <span class="seal-char">叠</span>
+      </div>
+      <p class="boot-text">入庭中</p>
+      <p class="boot-hint">首访需装载庭院，请稍候</p>
+      <noscript><p class="boot-hint">此游戏需要启用 JavaScript 与 WebGL</p></noscript>
+    </div>
     <div id="stage"></div>
     <div id="vignette"></div>
     <div id="danger"></div>
@@ -34,7 +134,7 @@
         <div id="score">0</div>
       </div>
       <div id="best">最高 0</div>
-      <div id="timer" aria-label="本局剩余时辰"><span class="t-icon" aria-hidden="true">时</span><span id="timer-text">02:00</span></div>
+      <div id="timer" aria-label="本局剩余时辰"><span class="t-icon" aria-hidden="true">时</span><span id="timer-text">10:00</span></div>
       <button id="ladder" type="button" aria-label="打开七宝谱">
         <span data-level="1"></span>
         <span data-level="2"></span>
@@ -57,13 +157,18 @@
       <i>夜</i>
     </button>
 
+    <button id="bgm-toggle" type="button" aria-label="乐声静音">
+      <span id="bgm-icon" aria-hidden="true">♪</span>
+      <i>乐</i>
+    </button>
+
     <aside id="tips">
       <b>玩法</b>
       <span>在右下罗盘内移动鼠标，点下即落珠</span>
       <span>两颗同名宝珠相撞，合而为一</span>
       <span>拖动场景旋转视角，滚轮缩放</span>
       <span class="faint">合出两枚夜明珠，可化光得百</span>
-      <span class="faint">一炷香两分钟，香尽即收卷入画</span>
+      <span class="faint">一炷香十分钟，香尽即收卷入画</span>
     </aside>
 
     <div id="panel-wrap">
